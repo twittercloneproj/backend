@@ -1,0 +1,44 @@
+#Generally designed with an idea of being cross compatible between compose and
+#swarm mode.
+version: "3.1"
+
+services:
+  #Our service.
+  server:
+    #we could've specified an image to use, but while developing we may want to always rebuild the
+    #service since we are probably changing the code a lot
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    container_name: "product-server"
+    hostname: "product-server"
+    #Mapping ports
+    ports:
+      # <port_on_local>:<port_in_machine>
+      - 8080:8080
+    #Will be accessible through os.Getenv("PORT")
+    environment:
+      - PORT=8080
+      # NoSQL: DB environment variable must match DB service name specified in docker-compose
+      - DB=consul
+      # NoSQL: DBPORT is port on witch DB service is listnening
+      - DBPORT=8500
+    # NoSQL: Our service will try to connect to Consul before it is up
+    # in order to avoid that problem, we specify that it depends on consul service
+    # which defines the order of starting the containers
+    depends_on:
+      - consul
+
+  # NoSQL: Consul
+  consul:
+    image: consul
+    ports:
+      - "8500:8500"
+      - "8600:8600/tcp"
+      - "8600:8600/udp"
+    command: "agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0"
+    volumes:
+      # NoSQL
+      # <path_to_where_to_store_data_on_host_machine>:<database_specific_data_location>
+      - ./consul_store:/consul/data
