@@ -3,6 +3,8 @@ module tweet_service
 go 1.19
 
 require (
+	github.com/go-chi/chi v1.5.4
+	github.com/gocql/gocql v1.2.1
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
@@ -13,6 +15,8 @@ require (
 	github.com/armon/go-metrics v0.3.10 // indirect
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/felixge/httpsnoop v1.0.1 // indirect
+	github.com/golang/snappy v0.0.3 // indirect
+	github.com/hailocab/go-hostpool v0.0.0-20160125115350-e80d13ce29ed // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.1 // indirect
 	github.com/hashicorp/go-hclog v0.14.1 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.0 // indirect
@@ -24,4 +28,5 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad // indirect
+	gopkg.in/inf.v0 v0.9.1 // indirect
 )

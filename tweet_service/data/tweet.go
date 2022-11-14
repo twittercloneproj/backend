@@ -5,14 +5,22 @@ import (
 	"io"
 )
 
-type Tweet struct {
-	// NoSQL: we don't want to keep track of our int ID, so we use UUID
-	ID        string `json:"id"`                       //specifies that in the incoming Body the field to map to this will be called "id"
-	Text      string `json:"text" validate:"required"` //there are some integrated validation, for eg. this specifies that a value for name must be provided, otherwise it will not be valid
-	CreatedOn string `json:"createdOn"`
+type Marshaler interface {
+	MarshalJSON() ([]byte, error)
 }
 
-type Tweets []*Tweet
+type Unmarshaler interface {
+	UnmarshalJSON([]byte) error
+}
+
+type Tweet struct {
+	ID        string `json:"id"`
+	Text      string `json:"text"`
+	CreatedOn string `json:"created_on"`
+}
+type Tweets struct {
+	tweets []Tweet
+}
 
 func (p *Tweets) ToJSON(w io.Writer) error {
 	e := json.NewEncoder(w)

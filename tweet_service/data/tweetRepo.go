@@ -3,98 +3,79 @@ package data
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/consul/api"
+	"github.com/gocql/gocql"
+	"io"
 	"log"
+	"net/http"
 	"os"
-	"time"
 )
 
-// TweetRepo struct encapsulating Consul api client
 type TweetRepo struct {
-	cli    *api.Client
 	logger *log.Logger
+	db     *gocql.Session
 }
 
-// Constructor which reads db configuration from environment
+var Session *gocql.Session
+
 func New(logger *log.Logger) (*TweetRepo, error) {
-	db := os.Getenv("DB")
 	dbport := os.Getenv("DBPORT")
-
-	config := api.DefaultConfig()
-	config.Address = fmt.Sprintf("%s:%s", db, dbport)
-	client, err := api.NewClient(config)
+	db := os.Getenv("DB")
+	host := fmt.Sprintf("%s:%s", db, dbport)
+	cluster := gocql.NewCluster(host)
+	cluster.ProtoVersion = 4
+	cluster.Keyspace = "tweet_db"
+	cluster.Consistency = gocql.Quorum
+	session, err := cluster.CreateSession()
 	if err != nil {
 		return nil, err
 	}
-
-	return &TweetRepo{
-		cli:    client,
-		logger: logger,
-	}, nil
+	return &TweetRepo{db: session}, nil
 }
 
-// Returns all tweets
-func (pr *TweetRepo) GetAll() (Tweets, error) {
-	kv := pr.cli.KV()
-	data, _, err := kv.List(all, nil)
-	if err != nil {
-		return nil, err
+func (s *TweetRepo) GetAll() ([]Tweet, error) {
+	var tweet Tweet
+	var tweets []Tweet
+	iter := s.db.Query(`SELECT id, text, created_on FROM tweets`).Iter()
+	for iter.Scan(&tweet.ID, &tweet.Text, &tweet.CreatedOn) {
+		fmt.Println("ID= "+tweet.ID, "Tekst= "+tweet.Text, "Kreiran(datum):"+tweet.CreatedOn)
+		tweets = append(tweets, tweet)
 	}
 
-	tweets := Tweets{}
-	for _, pair := range data {
-		tweet := &Tweet{}
-		err = json.Unmarshal(pair.Value, tweet)
-		if err != nil {
-			return nil, err
-		}
-		tweets = append(tweets, tweet)
+	if err := iter.Close(); err != nil {
+		log.Fatal(err)
+		return nil, err
 	}
 
 	return tweets, nil
 }
 
-// NoSQL: Returns Tweet by id
-func (pr *TweetRepo) Get(id string) (*Tweet, error) {
-	kv := pr.cli.KV()
-
-	pair, _, err := kv.Get(constructKey(id), nil)
+func Post(w http.ResponseWriter, r *http.Request) {
+	var Newtweet Tweet
+	reqBody, err := io.ReadAll(r.Body)
 	if err != nil {
-		return nil, err
+		fmt.Fprintf(w, "wrong data")
 	}
-	// If pair is nil -> no object found for given id -> return nil
-	if pair == nil {
-		return nil, nil
+	json.Unmarshal(reqBody, &Newtweet)
+	if err := Session.Query("INSERT INTO tweets(id, text, created_on) VALUES(?, ?, ?)",
+		Newtweet.ID, Newtweet.Text, Newtweet.CreatedOn).Exec(); err != nil {
+		fmt.Println("Error while inserting")
+		fmt.Println(err)
 	}
+	w.WriteHeader(http.StatusCreated)
+	Conv, _ := json.MarshalIndent(Newtweet, "", " ")
+	fmt.Fprintf(w, "%s", string(Conv))
 
-	tweet := &Tweet{}
-	err = json.Unmarshal(pair.Value, tweet)
-	if err != nil {
-		return nil, err
-	}
-
-	return tweet, nil
 }
 
-// Saves Tweet to DB
-func (pr *TweetRepo) Post(tweet *Tweet) (*Tweet, error) {
-	kv := pr.cli.KV()
-
-	tweet.CreatedOn = time.Now().UTC().String()
-
-	dbId, id := generateKey()
-	tweet.ID = id
-
-	data, err := json.Marshal(tweet)
-	if err != nil {
-		return nil, err
-	}
-
-	tweetKeyValue := &api.KVPair{Key: dbId, Value: data}
-	_, err = kv.Put(tweetKeyValue, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return tweet, nil
-}
+//func (pr *TweetRepo) Post(tweet *Tweet) (*Tweet, error) {
+//	kv := pr.cli.KV()
+//
+//	tweet.CreatedOn = time.Now().UTC().String()
+//
+//	dbId, id := generateKey()
+//	tweet.ID = id
+//
+//	data, err := json.Marshal(tweet)
+//	if err != nil {
+//		return nil, err
+//	}

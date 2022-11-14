@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	gorillaHandlers "github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"os"
@@ -9,12 +11,11 @@ import (
 	"time"
 	"tweet_service/data"
 	"tweet_service/handlers"
-
-	gorillaHandlers "github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
 )
 
 func main() {
+	//Reading from environment, if not set we will default it to 8080.
+	//This allows flexibility in different environments (for eg. when running multiple docker api's and want to override the default port)
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
 		port = "8080"
@@ -23,7 +24,7 @@ func main() {
 	//Initialize the logger we are going to use, with prefix and datetime for every log
 	logger := log.New(os.Stdout, "[tweet-api] ", log.LstdFlags)
 
-	// Initialize Tweet Repository store
+	// NoSQL: Initialize Product Repository store
 	store, err := data.New(logger)
 	if err != nil {
 		logger.Fatal(err)
@@ -34,18 +35,12 @@ func main() {
 
 	//Initialize the router and add a middleware for all the requests
 	router := mux.NewRouter()
-	router.Use(tweetsHandler.MiddlewareContentTypeSet)
 
 	getAllRouter := router.Methods(http.MethodGet).Subrouter()
 	getAllRouter.HandleFunc("/all", tweetsHandler.GetAllTweets)
 
-	// get by id handler mapping
-	getByIdRouter := router.Methods(http.MethodGet).Subrouter()
-	getByIdRouter.HandleFunc("/{id}", tweetsHandler.GetOneTweet)
-
 	postRouter := router.Methods(http.MethodPost).Subrouter()
 	postRouter.HandleFunc("/", tweetsHandler.PostTweet)
-	postRouter.Use(tweetsHandler.MiddlewareTweetValidation)
 
 	//Set cors. Generally you wouldn't like to set cors to a "*". It is a wildcard and it will match any source.
 	//Normally you would set this to a set of ip's you want this api to serve. If you have an associated frontend app

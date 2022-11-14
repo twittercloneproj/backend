@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"tweet_service/data"
@@ -21,6 +21,17 @@ func NewTweetsHandler(l *log.Logger, r *data.TweetRepo) *TweetsHandler {
 	return &TweetsHandler{l, r}
 }
 
+func renderJSON(w http.ResponseWriter, v interface{}) {
+	js, err := json.Marshal(v)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(js)
+}
+
 func (p *TweetsHandler) GetAllTweets(rw http.ResponseWriter, h *http.Request) {
 	allTweets, err := p.repo.GetAll()
 	if err != nil {
@@ -28,42 +39,18 @@ func (p *TweetsHandler) GetAllTweets(rw http.ResponseWriter, h *http.Request) {
 		p.logger.Fatal("Database exception: ", err)
 	}
 
-	err = allTweets.ToJSON(rw)
 	if err != nil {
 		http.Error(rw, "Unable to convert to json", http.StatusInternalServerError)
 		p.logger.Fatal("Unable to convert to json :", err)
 		return
 	}
-}
-
-func (p *TweetsHandler) GetOneTweet(rw http.ResponseWriter, h *http.Request) {
-	vars := mux.Vars(h)
-	id := vars["id"]
-
-	tweet, err := p.repo.Get(id)
-	if err != nil {
-		http.Error(rw, "Database exception", http.StatusInternalServerError)
-		p.logger.Fatal("Database exception: ", err)
-	}
-
-	if tweet == nil {
-		http.Error(rw, "Tweet with given id not found", http.StatusNotFound)
-		p.logger.Printf("Tweet with id: '%s' not found", id)
-		return
-	}
-
-	err = tweet.ToJSON(rw)
-	if err != nil {
-		http.Error(rw, "Unable to convert to json", http.StatusInternalServerError)
-		p.logger.Fatal("Unable to convert to json :", err)
-		return
-	}
+	renderJSON(rw, allTweets)
 }
 
 func (p *TweetsHandler) PostTweet(rw http.ResponseWriter, h *http.Request) {
-	tweet := h.Context().Value(KeyTweet{}).(*data.Tweet)
-	p.repo.Post(tweet)
-	// NoSQL: Bonus - create inside nested key structure
+	//#Todo
+	//tweet := h.Context().Value(KeyTweet{}).(*data.Tweet)
+	//p.repo.Post(tweet)
 	rw.WriteHeader(http.StatusCreated)
 }
 
@@ -85,16 +72,6 @@ func (p *TweetsHandler) MiddlewareTweetValidation(next http.Handler) http.Handle
 
 		ctx := context.WithValue(h.Context(), KeyTweet{}, tweet)
 		h = h.WithContext(ctx)
-
-		next.ServeHTTP(rw, h)
-	})
-}
-
-func (p *TweetsHandler) MiddlewareContentTypeSet(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(rw http.ResponseWriter, h *http.Request) {
-		p.logger.Println("Method [", h.Method, "] - Hit path :", h.URL.Path)
-
-		rw.Header().Add("Content-Type", "application/json")
 
 		next.ServeHTTP(rw, h)
 	})
