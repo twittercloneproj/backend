@@ -1,12 +1,9 @@
 package data
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/gocql/gocql"
-	"io"
 	"log"
-	"net/http"
 	"os"
 )
 
@@ -14,8 +11,6 @@ type TweetRepo struct {
 	logger *log.Logger
 	db     *gocql.Session
 }
-
-var Session *gocql.Session
 
 func New(logger *log.Logger) (*TweetRepo, error) {
 	dbport := os.Getenv("DBPORT")
@@ -36,8 +31,7 @@ func (s *TweetRepo) GetAll() ([]Tweet, error) {
 	var tweet Tweet
 	var tweets []Tweet
 	iter := s.db.Query(`SELECT id, text, created_on FROM tweets`).Iter()
-	for iter.Scan(&tweet.ID, &tweet.Text, &tweet.CreatedOn) {
-		fmt.Println("ID= "+tweet.ID, "Tekst= "+tweet.Text, "Kreiran(datum):"+tweet.CreatedOn)
+	for iter.Scan(&tweet.ID, &tweet.Text, &tweet.CreatedOn, &tweet.User) {
 		tweets = append(tweets, tweet)
 	}
 
@@ -49,22 +43,12 @@ func (s *TweetRepo) GetAll() ([]Tweet, error) {
 	return tweets, nil
 }
 
-func Post(w http.ResponseWriter, r *http.Request) {
-	var Newtweet Tweet
-	reqBody, err := io.ReadAll(r.Body)
-	if err != nil {
-		fmt.Fprintf(w, "wrong data")
-	}
-	json.Unmarshal(reqBody, &Newtweet)
-	if err := Session.Query("INSERT INTO tweets(id, text, created_on) VALUES(?, ?, ?)",
-		Newtweet.ID, Newtweet.Text, Newtweet.CreatedOn).Exec(); err != nil {
-		fmt.Println("Error while inserting")
-		fmt.Println(err)
-	}
-	w.WriteHeader(http.StatusCreated)
-	Conv, _ := json.MarshalIndent(Newtweet, "", " ")
-	fmt.Fprintf(w, "%s", string(Conv))
+func (s *TweetRepo) SaveTweet(tweet *Tweet) error {
+	err := s.db.Query("INSERT INTO tweets(id, text, created_on, user) VALUES(?, ?, ?, ?)").
+		Bind(tweet.ID, tweet.Text, tweet.CreatedOn, tweet.User). // u bazi ako cuvam ID uuid, onda ide sa gocql.UUID, umesto stringa.
+		Exec()
 
+	return err
 }
 
 //func (pr *TweetRepo) Post(tweet *Tweet) (*Tweet, error) {

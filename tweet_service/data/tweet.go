@@ -3,6 +3,7 @@ package data
 import (
 	"encoding/json"
 	"io"
+	"time"
 )
 
 type Marshaler interface {
@@ -14,22 +15,13 @@ type Unmarshaler interface {
 }
 
 type Tweet struct {
-	ID        string `json:"id"`
-	Text      string `json:"text"`
-	CreatedOn string `json:"created_on"`
+	ID        string    `json:"id"`
+	Text      string    `json:"text"`
+	CreatedOn time.Time `json:"created_on"`
+	User      string    `json:"user"`
 }
 type Tweets struct {
 	tweets []Tweet
-}
-
-func (p *Tweets) ToJSON(w io.Writer) error {
-	e := json.NewEncoder(w)
-	return e.Encode(p)
-}
-
-func (p *Tweet) ToJSON(w io.Writer) error {
-	e := json.NewEncoder(w)
-	return e.Encode(p)
 }
 
 func (p *Tweet) FromJSON(r io.Reader) error {

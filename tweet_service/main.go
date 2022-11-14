@@ -40,7 +40,7 @@ func main() {
 	getAllRouter.HandleFunc("/all", tweetsHandler.GetAllTweets)
 
 	postRouter := router.Methods(http.MethodPost).Subrouter()
-	postRouter.HandleFunc("/", tweetsHandler.PostTweet)
+	postRouter.HandleFunc("/tweets", tweetsHandler.PostTweet)
 
 	//Set cors. Generally you wouldn't like to set cors to a "*". It is a wildcard and it will match any source.
 	//Normally you would set this to a set of ip's you want this api to serve. If you have an associated frontend app

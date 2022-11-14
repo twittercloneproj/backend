@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"log"
 	"net/http"
+	"time"
 	"tweet_service/data"
 )
 
@@ -48,10 +50,23 @@ func (p *TweetsHandler) GetAllTweets(rw http.ResponseWriter, h *http.Request) {
 }
 
 func (p *TweetsHandler) PostTweet(rw http.ResponseWriter, h *http.Request) {
-	//#Todo
-	//tweet := h.Context().Value(KeyTweet{}).(*data.Tweet)
-	//p.repo.Post(tweet)
-	rw.WriteHeader(http.StatusCreated)
+
+	tweet, err := data.DecodeTweetBody(h.Body)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	tweet.ID = uuid.New().String()
+	tweet.CreatedOn = time.Now().Local()
+
+	err = p.repo.SaveTweet(tweet)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	renderJSON(rw, tweet)
 }
 
 func (p *TweetsHandler) MiddlewareTweetValidation(next http.Handler) http.Handler {
