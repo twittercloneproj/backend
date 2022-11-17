@@ -17,10 +17,29 @@ type UserRepo struct {
 	logger *log.Logger
 }
 
-func New(ctx context.Context, logger *log.Logger) (*UserRepo, error) {
-	dburi := os.Getenv("MONGO_DB_URI")
+const (
+	DATABASE               = "auth"
+	CREDENTIALS_COLLECTION = "credentials"
+)
 
-	client, err := mongo.NewClient(options.Client().ApplyURI(dburi))
+type AuthRepoMongoDb struct {
+	credentials mongo.Collection
+}
+
+//func New(clientmongo.Client) data.AuthRepo {
+//	credentials := client.Database(DATABASE).Collection(CREDENTIALS_COLLECTION)
+//	credentials.Drop(context.TODO())
+//	return &AuthRepoMongoDb{
+//		credentials: credentials,
+//	}
+//}
+
+func New(ctx context.Context, logger *log.Logger) (*UserRepo, error) {
+	db := os.Getenv("AUTH_DB_HOST")
+	dbport := os.Getenv("AUTH_DB_PORT")
+
+	host := fmt.Sprintf("%s:%s", db, dbport)
+	client, err := mongo.NewClient(options.Client().ApplyURI(`mongodb://` + host))
 	if err != nil {
 		return nil, err
 	}

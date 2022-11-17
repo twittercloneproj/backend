@@ -1,4 +1,4 @@
-package auth_service
+package main
 
 import (
 	"auth_service/data"
@@ -14,36 +14,27 @@ import (
 )
 
 func main() {
-	//Reading from environment, if not set we will default it to 8080.
-	//This allows flexibility in different environments (for eg. when running multiple docker api's and want to override the default port)
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
-		port = "8080"
+		port = "8003"
 	}
 
-	// Initialize context
 	timeoutContext, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	//Initialize the logger we are going to use, with prefix and datetime for every log
 	logger := log.New(os.Stdout, "[user-api] ", log.LstdFlags)
 	storeLogger := log.New(os.Stdout, "[user-store] ", log.LstdFlags)
 
-	// NoSQL: Initialize User Repository store
-	//store, err := data.New(timeoutContext, storeLogger)
 	store, err := data.New(timeoutContext, storeLogger)
 	if err != nil {
 		logger.Fatal(err)
 	}
 	defer store.Disconnect(timeoutContext)
 
-	// NoSQL: Checking if the connection was established
 	store.Ping()
 
-	//Initialize the handler and inject said logger
 	usersHandler := handlers.NewUsersHandler(logger, store)
 
-	//Initialize the router and add a middleware for all the requests
 	router := mux.NewRouter()
 
 	getRouter := router.Methods(http.MethodGet).Subrouter()
@@ -55,7 +46,6 @@ func main() {
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
-	//Initialize the server
 	server := http.Server{
 		Addr:         ":" + port,
 		Handler:      cors(router),
