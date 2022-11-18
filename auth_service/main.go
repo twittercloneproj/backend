@@ -40,9 +40,15 @@ func main() {
 	getRouter := router.Methods(http.MethodGet).Subrouter()
 	getRouter.HandleFunc("/users/all", usersHandler.GetAllUsers)
 
+	//getRouterB := router.Methods(http.MethodGet).Subrouter()
+	//getRouterB.HandleFunc("/users/allB", usersHandler.GetAllBUsers)
+
 	postRouter := router.Methods(http.MethodPost).Subrouter()
 	postRouter.HandleFunc("/users/add", usersHandler.PostUsers)
 	postRouter.Use(usersHandler.MiddlewarePatientDeserialization)
+
+	//postBRouter := router.Methods(http.MethodPost).Subrouter()
+	//postBRouter.HandleFunc("/users/addB", usersHandler.PostBUsers)
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
