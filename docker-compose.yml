@@ -1,0 +1,66 @@
+version: '2.1'
+services:
+  # ne dirati nista ovde
+  cassandra:
+    image: cassandra:4.0
+    ports:
+      - "7000:7000"
+      - "9042:9042"
+    volumes:
+      - ~/apps/cassandra:/var/lib/cassandra
+    healthcheck:
+      test: [ "CMD-SHELL", "[ $$(nodetool statusgossip) = running ]" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+  app:
+    build: tweet_service
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      cassandra:
+        condition: service_healthy
+    environment:
+      - DBPORT=9042
+      - DB=cassandra
+
+  auth_service:
+    build: auth_service
+    container_name: auth_service
+    restart: always
+    ports:
+      - "8003:8003"
+    environment:
+      AUTH_DB_HOST: ${AUTH_DB_HOST}
+      AUTH_DB_PORT: ${AUTH_DB_PORT}
+      AUTH_DB_NAME: ${AUTH_DB_NAME}
+      AUTH_SERVICE_PORT: ${AUTH_SERVICE_PORT}
+      AUTH_SERVICE_HOST: ${AUTH_SERVICE_HOST}
+      JWT_PRIVATE: ${JWT_PRIVATE}
+      JWT_PUBLIC: ${JWT_PUBLIC}
+    depends_on:
+      - auth_db
+    networks:
+      - network
+
+  auth_db:
+    image: mongo
+    container_name: auth_db
+    restart: always
+    networks:
+      - network
+    volumes:
+      - ${AUTH_DB_VOLUME}:/data/db
+
+volumes:
+  cassandra:
+  mongo_store:
+
+networks:
+  network:
+    driver: bridge
+
+
+
+

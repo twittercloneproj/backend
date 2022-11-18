@@ -30,7 +30,7 @@ func New(logger *log.Logger) (*TweetRepo, error) {
 func (s *TweetRepo) GetAll() ([]Tweet, error) {
 	var tweet Tweet
 	var tweets []Tweet
-	iter := s.db.Query(`SELECT id, text, created_on FROM tweets`).Iter()
+	iter := s.db.Query(`SELECT id, text, created_on, user FROM tweets`).Iter()
 	for iter.Scan(&tweet.ID, &tweet.Text, &tweet.CreatedOn, &tweet.User) {
 		tweets = append(tweets, tweet)
 	}
