@@ -46,7 +46,13 @@ func main() {
 	//Normally you would set this to a set of ip's you want this api to serve. If you have an associated frontend app
 	//you would put the ip of the server where the frontend is running. The only time you don't need cors is when you
 	//calling the api from the same ip, or when you are using the proxy (for eg. Nginx)
-	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
+
+	//cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
+	//CORS
+	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"http://localhost:7000"}),
+		gorillaHandlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE"}),
+		gorillaHandlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"}),
+		gorillaHandlers.AllowCredentials())
 
 	//Initialize the server
 	server := http.Server{
