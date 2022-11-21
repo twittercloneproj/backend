@@ -50,7 +50,10 @@ func main() {
 	//postBRouter := router.Methods(http.MethodPost).Subrouter()
 	//postBRouter.HandleFunc("/users/addB", usersHandler.PostBUsers)
 
-	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
+	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"http://localhost:4200"}),
+		gorillaHandlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE"}),
+		gorillaHandlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"}),
+		gorillaHandlers.AllowCredentials())
 
 	server := http.Server{
 		Addr:         ":" + port,
