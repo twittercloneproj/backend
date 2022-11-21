@@ -49,7 +49,7 @@ func main() {
 
 	//cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 	//CORS
-	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"http://localhost:7000"}),
+	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"http://localhost:4200"}),
 		gorillaHandlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE"}),
 		gorillaHandlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"}),
 		gorillaHandlers.AllowCredentials())
