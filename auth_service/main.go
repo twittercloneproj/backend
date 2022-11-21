@@ -59,8 +59,8 @@ func main() {
 		ReadTimeout:  1 * time.Second,
 		WriteTimeout: 1 * time.Second,
 	}
-	certFile := "domain.crt"
-	keyFile := "domain.key"
+	certFile := "twitter.crt"
+	keyFile := "twitter.key"
 
 	logger.Println("Server listening on port", port)
 	//Distribute all the connections to goroutines
