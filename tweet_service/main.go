@@ -63,10 +63,13 @@ func main() {
 		WriteTimeout: 1 * time.Second,   // WriteTimeout is the maximum duration before timing out writes of the response.
 	}
 
+	certFile := "twitter.crt"
+	keyFile := "twitter.key"
+
 	logger.Println("Server listening on port", port)
 	//Distribute all the connections to goroutines
 	go func() {
-		err := server.ListenAndServe()
+		err := server.ListenAndServeTLS(certFile, keyFile)
 		if err != nil {
 			logger.Fatal(err)
 		}

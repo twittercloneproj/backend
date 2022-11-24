@@ -43,7 +43,6 @@ services:
       - auth_db
     networks:
       - network
-
   auth_db:
     image: mongo
     container_name: auth_db
@@ -52,6 +51,7 @@ services:
       - network
     volumes:
       - ${AUTH_DB_VOLUME}:/data/db
+
 
 volumes:
   cassandra:

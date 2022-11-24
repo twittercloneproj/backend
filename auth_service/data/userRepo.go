@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"golang.org/x/crypto/bcrypt"
 	"log"
 	"os"
 	"time"
@@ -75,11 +76,27 @@ func (pr *UserRepo) GetAll() (Users, error) {
 	return users, nil
 }
 
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes), err
+}
+
+func CheckPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
+}
+
 func (pr *UserRepo) Post(user *User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	usersCollection := pr.getCollection()
 
+	hash, _ := HashPassword(user.Password)
+
+	//match := CheckPasswordHash(user.Password, hash)
+	//fmt.Println("Match:   ", match)
+
+	user.Password = hash
 	result, err := usersCollection.InsertOne(ctx, &user)
 	if err != nil {
 		pr.logger.Println(err)
