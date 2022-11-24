@@ -31,11 +31,11 @@ EXPOSE 8000
 # Copy the Pre-built binary file from the previous stage
 COPY --from=builder /app/main .
 
-COPY --from=builder /app/sert .
-
-
+#COPY --from=builder /app/sert .
 
 # Command to run the executable
 RUN chmod +x ./main
 
 CMD ["./main"]
+
+

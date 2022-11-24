@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -18,7 +17,7 @@ func main() {
 	//This allows flexibility in different environments (for eg. when running multiple docker api's and want to override the default port)
 	port := os.Getenv("PORT")
 	if len(port) == 0 {
-		port = "8080"
+		port = "8001"
 	}
 
 	//Initialize the logger we are going to use, with prefix and datetime for every log
@@ -49,27 +48,29 @@ func main() {
 
 	//cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 	//CORS
-	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"http://localhost:4200"}),
-		gorillaHandlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE"}),
-		gorillaHandlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"}),
-		gorillaHandlers.AllowCredentials())
+
+	//cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"http://localhost:4200"}),
+	//	gorillaHandlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE"}),
+	//	gorillaHandlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"}),
+	//	gorillaHandlers.AllowCredentials())
 
 	//Initialize the server
 	server := http.Server{
 		Addr:         ":" + port,        // Addr optionally specifies the TCP address for the server to listen on, in the form "host:port". If empty, ":http" (port 80) is used.
-		Handler:      cors(router),      // handler to invoke, http.DefaultServeMux if nil
+		Handler:      router,            // handler to invoke, http.DefaultServeMux if nil
 		IdleTimeout:  120 * time.Second, // IdleTimeout is the maximum amount of time to wait for the next request when keep-alives are enabled.
 		ReadTimeout:  1 * time.Second,   // ReadTimeout is the maximum duration for reading the entire request, including the body. A zero or negative value means there will be no timeout.
 		WriteTimeout: 1 * time.Second,   // WriteTimeout is the maximum duration before timing out writes of the response.
 	}
 
-	certFile := "twitter.crt"
-	keyFile := "twitter.key"
+	//certFile := "twitter.crt"
+	//keyFile := "twitter.key"
 
 	logger.Println("Server listening on port", port)
 	//Distribute all the connections to goroutines
 	go func() {
-		err := server.ListenAndServeTLS(certFile, keyFile)
+		//err := server.ListenAndServeTLS(certFile, keyFile)
+		err := server.ListenAndServe()
 		if err != nil {
 			logger.Fatal(err)
 		}

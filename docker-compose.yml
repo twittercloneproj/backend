@@ -1,6 +1,5 @@
 version: '2.1'
 services:
-  # ne dirati nista ovde
   cassandra:
     image: cassandra:4.0
     ports:
@@ -13,17 +12,24 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-  app:
+    networks:
+      - network
+
+
+  tweet_service:
+    container_name: tweet_service
     build: tweet_service
     restart: always
     ports:
-      - "8080:8080"
+      - "8001:8001"
     depends_on:
       cassandra:
         condition: service_healthy
     environment:
       - DBPORT=9042
       - DB=cassandra
+    networks:
+      - network
 
   auth_service:
     build: auth_service
@@ -51,6 +57,21 @@ services:
       - network
     volumes:
       - ${AUTH_DB_VOLUME}:/data/db
+
+
+  api_gateway:
+    build:
+      context: ./api_gateway/
+      dockerfile: Dockerfile
+    container_name: api_gateway
+    depends_on:
+      - tweet_service
+      - auth_service
+    restart: on-failure
+    ports:
+      - "8000:8000"
+    networks:
+      - network
 
 
 volumes:

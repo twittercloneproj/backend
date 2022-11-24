@@ -91,12 +91,18 @@ func (pr *UserRepo) Post(user *User) error {
 	defer cancel()
 	usersCollection := pr.getCollection()
 
-	hash, _ := HashPassword(user.Password)
-
+	//hash, _ := HashPassword(user.Password)
 	//match := CheckPasswordHash(user.Password, hash)
 	//fmt.Println("Match:   ", match)
+	//user.Password = hash
 
-	user.Password = hash
+	pass := []byte(user.Password)
+	hash, err := bcrypt.GenerateFromPassword(pass, bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	user.Password = string(hash)
+
 	result, err := usersCollection.InsertOne(ctx, &user)
 	if err != nil {
 		pr.logger.Println(err)
