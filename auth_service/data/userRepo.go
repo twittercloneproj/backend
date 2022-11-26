@@ -103,6 +103,14 @@ func (pr *UserRepo) Post(user *User) error {
 	}
 	user.Password = string(hash)
 
+	if user.Email == "" && user.Firm == "" && user.Website == "" {
+		user.Role = Regular
+	} else if user.Email != "" && user.Firm != "" && user.Website != "" {
+		user.Role = Business
+	} else {
+		user.Role = Regular
+	}
+
 	result, err := usersCollection.InsertOne(ctx, &user)
 	if err != nil {
 		pr.logger.Println(err)
