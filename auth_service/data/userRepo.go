@@ -27,14 +27,6 @@ type AuthRepoMongoDb struct {
 	credentials mongo.Collection
 }
 
-//func New(clientmongo.Client) data.AuthRepo {
-//	credentials := client.Database(DATABASE).Collection(CREDENTIALS_COLLECTION)
-//	credentials.Drop(context.TODO())
-//	return &AuthRepoMongoDb{
-//		credentials: credentials,
-//	}
-//}
-
 func New(ctx context.Context, logger *log.Logger) (*UserRepo, error) {
 	db := os.Getenv("AUTH_DB_HOST")
 	dbport := os.Getenv("AUTH_DB_PORT")
@@ -54,6 +46,48 @@ func New(ctx context.Context, logger *log.Logger) (*UserRepo, error) {
 		cli:    client,
 		logger: logger,
 	}, nil
+}
+
+// GetOneUser TODO
+func (pr *UserRepo) GetOneUser(username string) (*User, error) {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	patientsCollection := pr.getCollection()
+
+	var user User
+	//usrname, _ := primitive.ObjectIDFromHex(username)
+	err := patientsCollection.FindOne(ctx, bson.D{{Key: "username", Value: username}}).Decode(&user)
+	if err != nil {
+		pr.logger.Println(err)
+		return nil, err
+	}
+	return &user, nil
+}
+
+//ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+//defer cancel()
+//
+//patientsCollection := pr.getCollection()
+//
+//var patients Users
+//patientsCursor, err := patientsCollection.Find(ctx, bson.M{"username": username})
+//if err != nil {
+//	pr.logger.Println(err)
+//	return nil, err
+//}
+//if err = patientsCursor.All(ctx, &patients); err != nil {
+//	pr.logger.Println(err)
+//	return nil, err
+//}
+//return patients, nil
+//}
+
+func (store *AuthRepoMongoDb) filterOne(filter interface{}) (user *User, err error) {
+	result := store.credentials.FindOne(context.TODO(), filter)
+	err = result.Decode(&user)
+	return
 }
 
 func (pr *UserRepo) GetAll() (Users, error) {
@@ -90,11 +124,6 @@ func (pr *UserRepo) Post(user *User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	usersCollection := pr.getCollection()
-
-	//hash, _ := HashPassword(user.Password)
-	//match := CheckPasswordHash(user.Password, hash)
-	//fmt.Println("Match:   ", match)
-	//user.Password = hash
 
 	pass := []byte(user.Password)
 	hash, err := bcrypt.GenerateFromPassword(pass, bcrypt.DefaultCost)

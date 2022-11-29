@@ -2,6 +2,7 @@ package data
 
 import (
 	"encoding/json"
+	"github.com/golang-jwt/jwt/v4"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
 	"net/http"
@@ -22,6 +23,13 @@ type User struct {
 	Website string `bson:"website,omitempty" json:"website"` // b
 
 	Role Role `bson:"role,omitempty" json:"role"`
+}
+
+type Claims struct {
+	ID       primitive.ObjectID `json:"id"`
+	Username string             `json:"username"`
+	Role     Role               `json:"role"`
+	jwt.RegisteredClaims
 }
 
 type Role string

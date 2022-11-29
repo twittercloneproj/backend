@@ -47,6 +47,9 @@ func main() {
 	postRouter.HandleFunc("/users/add", usersHandler.PostUsers)
 	postRouter.Use(usersHandler.MiddlewarePatientDeserialization)
 
+	loginRouter := router.Methods(http.MethodPost).Subrouter()
+	loginRouter.HandleFunc("/users/login", usersHandler.Login)
+
 	//postBRouter := router.Methods(http.MethodPost).Subrouter()
 	//postBRouter.HandleFunc("/users/addB", usersHandler.PostBUsers)
 
