@@ -10,6 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
+	"net/smtp"
 	"os"
 	"time"
 )
@@ -26,6 +27,29 @@ var jwtKey = []byte(os.Getenv("SECRET_KEY"))
 // Injecting the logger makes this code much more testable.
 func NewUsersHandler(l *log.Logger, r *data.UserRepo) *UsersHandler {
 	return &UsersHandler{l, r}
+}
+
+func sendMailSimple(subject string, body string, to []string) {
+	auth := smtp.PlainAuth(
+		"",
+		"oliver.kojic22@gmail.com",
+		"tdejbdyydokiprsz",
+		"smtp.gmail.com",
+	)
+
+	msg := "Subject: " + subject + "\n" + body
+
+	err := smtp.SendMail(
+		"smtp.gmail.com:587",
+		auth,
+		"oliver.kojic22@gmail.com",
+		to,
+		[]byte(msg),
+	)
+
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 func (p *UsersHandler) GetAllUsers(rw http.ResponseWriter, h *http.Request) {
