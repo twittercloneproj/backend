@@ -49,6 +49,26 @@ services:
       - auth_db
     networks:
       - network
+
+  profile_service:
+    build: profile_service
+    container_name: profile_service
+    restart: always
+    ports:
+      - "8004:8004"
+    environment:
+      AUTH_DB_HOST: ${PROFILE_DB_HOST}
+      AUTH_DB_PORT: ${PROFILE_DB_PORT}
+      AUTH_DB_NAME: ${PROFILE_DB_NAME}
+      AUTH_SERVICE_PORT: ${PROFILE_SERVICE_PORT}
+      AUTH_SERVICE_HOST: ${PROFILE_SERVICE_HOST}
+#      JWT_PRIVATE: ${JWT_PRIVATE}
+#      JWT_PUBLIC: ${JWT_PUBLIC}
+    depends_on:
+      - auth_db
+    networks:
+      - network
+
   auth_db:
     image: mongo
     container_name: auth_db
@@ -56,8 +76,9 @@ services:
     networks:
       - network
     volumes:
-#      - ${AUTH_DB_VOLUME}:/data/db
       - mongo_store:/data/db
+      #      - ${AUTH_DB_VOLUME}:/data/db
+
 
 
   api_gateway:
