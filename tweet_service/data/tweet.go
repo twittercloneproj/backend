@@ -2,8 +2,8 @@ package data
 
 import (
 	"encoding/json"
+	"github.com/gocql/gocql"
 	"io"
-	"time"
 )
 
 type Marshaler interface {
@@ -15,10 +15,9 @@ type Unmarshaler interface {
 }
 
 type Tweet struct {
-	ID        string    `json:"id"`
-	Text      string    `json:"text"`
-	CreatedOn time.Time `json:"created_on"`
-	User      string    `json:"user"`
+	ID       gocql.UUID `json:"id"`
+	Text     string     `json:"text"`
+	PostedBy string     `json:"posted_by"`
 }
 type Tweets struct {
 	tweets []Tweet

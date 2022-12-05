@@ -4,10 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
+	"github.com/gocql/gocql"
 	"log"
 	"net/http"
-	"time"
 	"tweet_service/data"
 )
 
@@ -57,8 +56,7 @@ func (p *TweetsHandler) PostTweet(rw http.ResponseWriter, h *http.Request) {
 		return
 	}
 
-	tweet.ID = uuid.New().String()
-	tweet.CreatedOn = time.Now().Local()
+	tweet.ID = gocql.TimeUUID()
 
 	err = p.repo.SaveTweet(tweet)
 	if err != nil {

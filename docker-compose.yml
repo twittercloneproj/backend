@@ -56,7 +56,8 @@ services:
     networks:
       - network
     volumes:
-      - ${AUTH_DB_VOLUME}:/data/db
+#      - ${AUTH_DB_VOLUME}:/data/db
+      - mongo_store:/data/db
 
 
   api_gateway:
