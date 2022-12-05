@@ -30,8 +30,8 @@ func New(logger *log.Logger) (*TweetRepo, error) {
 func (s *TweetRepo) GetAll() ([]Tweet, error) {
 	var tweet Tweet
 	var tweets []Tweet
-	iter := s.db.Query(`SELECT id, text, created_on, user FROM tweets`).Iter()
-	for iter.Scan(&tweet.ID, &tweet.Text, &tweet.CreatedOn, &tweet.User) {
+	iter := s.db.Query(`SELECT id, text, posted_by FROM tweet_by_user`).Iter()
+	for iter.Scan(&tweet.ID, &tweet.Text, &tweet.PostedBy) {
 		tweets = append(tweets, tweet)
 	}
 
@@ -44,22 +44,9 @@ func (s *TweetRepo) GetAll() ([]Tweet, error) {
 }
 
 func (s *TweetRepo) SaveTweet(tweet *Tweet) error {
-	err := s.db.Query("INSERT INTO tweets(id, text, created_on, user) VALUES(?, ?, ?, ?)").
-		Bind(tweet.ID, tweet.Text, tweet.CreatedOn, tweet.User). // u bazi ako cuvam ID uuid, onda ide sa gocql.UUID, umesto stringa.
+	err := s.db.Query("INSERT INTO tweet_by_user(id, text, posted_by) VALUES(?, ?, ?)").
+		Bind(tweet.ID, tweet.Text, tweet.PostedBy).
 		Exec()
 
 	return err
 }
-
-//func (pr *TweetRepo) Post(tweet *Tweet) (*Tweet, error) {
-//	kv := pr.cli.KV()
-//
-//	tweet.CreatedOn = time.Now().UTC().String()
-//
-//	dbId, id := generateKey()
-//	tweet.ID = id
-//
-//	data, err := json.Marshal(tweet)
-//	if err != nil {
-//		return nil, err
-//	}
