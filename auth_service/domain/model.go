@@ -1,11 +1,11 @@
-package data
+package domain
 
 import (
 	"encoding/json"
-	"github.com/golang-jwt/jwt/v4"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io"
 	"net/http"
+	"time"
 )
 
 type User struct {
@@ -29,10 +29,10 @@ type User struct {
 }
 
 type Claims struct {
-	ID       primitive.ObjectID `json:"id"`
-	Username string             `json:"username"`
-	Role     Role               `json:"role"`
-	jwt.RegisteredClaims
+	ID        primitive.ObjectID `json:"id"`
+	Username  string             `json:"username"`
+	Role      Role               `json:"role"`
+	ExpiresAt time.Time          `json:"expires_at"`
 }
 
 type Role string
@@ -58,32 +58,6 @@ func (p *User) FromJSON(r io.Reader) error {
 	d := json.NewDecoder(r)
 	return d.Decode(p)
 }
-
-//func (p *BusinessUsers) ToJSON(w io.Writer) error {
-//	e := json.NewEncoder(w)
-//	return e.Encode(p)
-//}
-//
-//func (p *BusinessUser) ToJSON(w io.Writer) error {
-//	e := json.NewEncoder(w)
-//	return e.Encode(p)
-//}
-//
-//func (p *BusinessUser) FromJSON(r io.Reader) error {
-//	d := json.NewDecoder(r)
-//	return d.Decode(p)
-//}
-
-//func DecodeBody(r io.Reader) (*BusinessUser, error) {
-//	dec := json.NewDecoder(r)
-//	dec.DisallowUnknownFields()
-//
-//	var businessUser *BusinessUser
-//	if err := dec.Decode(&businessUser); err != nil {
-//		return nil, err
-//	}
-//	return businessUser, nil
-//}
 
 func RenderJSON(w http.ResponseWriter, v interface{}) {
 	js, err := json.Marshal(v)

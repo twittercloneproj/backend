@@ -26,6 +26,7 @@ services:
       cassandra:
         condition: service_healthy
     environment:
+      - SECRET_KEY=my_secret_key
       - DBPORT=9042
       - DB=cassandra
     networks:
@@ -45,6 +46,7 @@ services:
       AUTH_SERVICE_HOST: ${AUTH_SERVICE_HOST}
       JWT_PRIVATE: ${JWT_PRIVATE}
       JWT_PUBLIC: ${JWT_PUBLIC}
+      SECRET_KEY: ${SECRET_KEY}
     depends_on:
       - auth_db
     networks:

@@ -43,10 +43,14 @@ func (s *TweetRepo) GetAll() ([]Tweet, error) {
 	return tweets, nil
 }
 
-func (s *TweetRepo) SaveTweet(tweet *Tweet) error {
+func (s *TweetRepo) SaveTweet(tweet *Tweet) (*Tweet, error) {
 	err := s.db.Query("INSERT INTO tweet_by_user(id, text, posted_by) VALUES(?, ?, ?)").
 		Bind(tweet.ID, tweet.Text, tweet.PostedBy).
 		Exec()
+	if err != nil {
+		println(err)
+		return nil, err
+	}
 
-	return err
+	return tweet, nil
 }
