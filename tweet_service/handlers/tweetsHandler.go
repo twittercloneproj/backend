@@ -4,13 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/cristalhq/jwt/v4"
 	"github.com/gocql/gocql"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"tweet_service/data"
 )
 
 type KeyTweet struct{}
+
+var jwtKey = []byte(os.Getenv("SECRET_KEY"))
+
+var verifier, _ = jwt.NewVerifierHS(jwt.HS256, jwtKey)
 
 type TweetsHandler struct {
 	logger *log.Logger
@@ -50,21 +57,66 @@ func (p *TweetsHandler) GetAllTweets(rw http.ResponseWriter, h *http.Request) {
 
 func (p *TweetsHandler) PostTweet(rw http.ResponseWriter, h *http.Request) {
 
-	tweet, err := data.DecodeTweetBody(h.Body)
+	var request data.Tweet
+	err := json.NewDecoder(h.Body).Decode(&request)
 	if err != nil {
+		log.Println(err)
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	tweet.ID = gocql.TimeUUID()
+	bearer := h.Header.Get("Authorization")
+	bearerToken := strings.Split(bearer, "Bearer ")
+	tokenString := bearerToken[1]
+	fmt.Println(tokenString)
 
-	err = p.repo.SaveTweet(tweet)
+	token, err := jwt.Parse([]byte(tokenString), verifier)
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
-		return
+		fmt.Println(err)
 	}
 
-	renderJSON(rw, tweet)
+	claims := GetMapClaims(token.Bytes())
+	fmt.Println(claims)
+
+	username := claims["username"]
+	fmt.Println("ID JE ", username)
+
+	request.ID = gocql.TimeUUID()
+	request.PostedBy = username
+
+	tweet, err := p.repo.SaveTweet(&request)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		return
+	}
+	rw.WriteHeader(http.StatusOK)
+	jsonResponse(tweet, rw)
+}
+
+func jsonResponse(object interface{}, w http.ResponseWriter) {
+	resp, err := json.Marshal(object)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, err = w.Write(resp)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func GetMapClaims(tokenBytes []byte) map[string]string {
+	var claims map[string]string
+
+	err := jwt.ParseClaims(tokenBytes, verifier, &claims)
+	if err != nil {
+		log.Println(err)
+	}
+
+	return claims
 }
 
 func (p *TweetsHandler) MiddlewareTweetValidation(next http.Handler) http.Handler {

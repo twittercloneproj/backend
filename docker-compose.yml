@@ -28,6 +28,7 @@ services:
     environment:
       - DBPORT=9042
       - DB=cassandra
+      - SECRET_KEY=my_secret_key
     networks:
       - network
 
@@ -45,6 +46,7 @@ services:
       AUTH_SERVICE_HOST: ${AUTH_SERVICE_HOST}
       JWT_PRIVATE: ${JWT_PRIVATE}
       JWT_PUBLIC: ${JWT_PUBLIC}
+      SECRET_KEY: ${SECRET_KEY}
     depends_on:
       - auth_db
     networks:
