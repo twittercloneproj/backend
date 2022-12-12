@@ -70,3 +70,14 @@ func (s *TweetRepo) SaveTweet(tweet *Tweet) (*Tweet, error) {
 
 	return tweet, nil
 }
+
+func (s *TweetRepo) LikeTweett(like *Likes) (*Likes, error) {
+	err := s.db.Query("INSERT INTO likes(id, username) VALUES(?, ?)").
+		Bind(like.ID, like.Username).
+		Exec()
+	if err != nil {
+		println(err)
+		return nil, err
+	}
+	return like, nil
+}
