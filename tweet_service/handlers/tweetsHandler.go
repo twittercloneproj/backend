@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/cristalhq/jwt/v4"
 	"github.com/gocql/gocql"
+	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"os"
@@ -42,6 +43,24 @@ func renderJSON(w http.ResponseWriter, v interface{}) {
 
 func (p *TweetsHandler) GetAllTweets(rw http.ResponseWriter, h *http.Request) {
 	allTweets, err := p.repo.GetAll()
+	if err != nil {
+		http.Error(rw, "Database exception", http.StatusInternalServerError)
+		p.logger.Fatal("Database exception: ", err)
+	}
+
+	if err != nil {
+		http.Error(rw, "Unable to convert to json", http.StatusInternalServerError)
+		p.logger.Fatal("Unable to convert to json :", err)
+		return
+	}
+	renderJSON(rw, allTweets)
+}
+
+func (p *TweetsHandler) GetAllUserTweets(rw http.ResponseWriter, h *http.Request) {
+	vars := mux.Vars(h)
+	username := vars["username"]
+	allTweets, err := p.repo.GetTweetListByUsername(username)
+
 	if err != nil {
 		http.Error(rw, "Database exception", http.StatusInternalServerError)
 		p.logger.Fatal("Database exception: ", err)

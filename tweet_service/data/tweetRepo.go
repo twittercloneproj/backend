@@ -43,6 +43,22 @@ func (s *TweetRepo) GetAll() ([]Tweet, error) {
 	return tweets, nil
 }
 
+func (s *TweetRepo) GetTweetListByUsername(username string) ([]Tweet, error) {
+	var tweet Tweet
+	var tweets []Tweet
+	iter := s.db.Query(`SELECT id, text, posted_by FROM tweet_by_user WHERE posted_by = ?`).Bind(username).Iter()
+	for iter.Scan(&tweet.ID, &tweet.Text, &tweet.PostedBy) {
+		tweets = append(tweets, tweet)
+	}
+
+	if err := iter.Close(); err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+
+	return tweets, nil
+}
+
 func (s *TweetRepo) SaveTweet(tweet *Tweet) (*Tweet, error) {
 	err := s.db.Query("INSERT INTO tweet_by_user(id, text, posted_by) VALUES(?, ?, ?)").
 		Bind(tweet.ID, tweet.Text, tweet.PostedBy).

@@ -21,7 +21,14 @@ type User struct {
 	Website string `bson:"website,omitempty" json:"website"` // b
 
 	Role Role `bson:"role,omitempty" json:"role"`
+
+	//Tweets []Tweets `bson:"tweets,omitempty" json:"tweets"`
 }
+
+//type Tweets struct {
+//	ID   string `bson:"id,omitempty" json:"id"`
+//	Text string `bson:"text,omitempty" json:"text"`
+//}
 
 type Role string
 

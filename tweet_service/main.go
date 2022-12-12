@@ -38,6 +38,9 @@ func main() {
 	getAllRouter := router.Methods(http.MethodGet).Subrouter()
 	getAllRouter.HandleFunc("/all", tweetsHandler.GetAllTweets)
 
+	getTweetList := router.Methods(http.MethodGet).Subrouter()
+	getTweetList.HandleFunc("/about/{username}", tweetsHandler.GetAllUserTweets)
+
 	postRouter := router.Methods(http.MethodPost).Subrouter()
 	postRouter.HandleFunc("/tweets", tweetsHandler.PostTweet)
 
