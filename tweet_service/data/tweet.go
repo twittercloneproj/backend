@@ -19,6 +19,11 @@ type Tweet struct {
 	Text     string     `json:"text"`
 	PostedBy string     `json:"posted_by"`
 }
+
+type Likes struct {
+	ID       gocql.UUID `json:"id"`
+	Username string     `json:"username"`
+}
 type Tweets struct {
 	tweets []Tweet
 }

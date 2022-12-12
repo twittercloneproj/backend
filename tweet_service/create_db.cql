@@ -6,4 +6,10 @@ CREATE TABLE tweet_by_user (
 )
     WITH CLUSTERING ORDER BY (id DESC);
 
---     CREATE INDEX tweet_id on tweet_by_user(id);
+
+
+CREATE TABLE likes (
+    id timeuuid,
+    username text,
+    PRIMARY KEY ((id), username)
+);
