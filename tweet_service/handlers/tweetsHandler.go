@@ -74,6 +74,27 @@ func (p *TweetsHandler) GetAllUserTweets(rw http.ResponseWriter, h *http.Request
 	renderJSON(rw, allTweets)
 }
 
+func (p *TweetsHandler) GetUsersWhoLikedTweet(rw http.ResponseWriter, h *http.Request) {
+
+	vars := mux.Vars(h)
+	id := vars["id"]
+	id2, _ := gocql.ParseUUID(id)
+	allTweets, err := p.repo.GetUsersWhoLikedTweet(id2)
+
+	if err != nil {
+		http.Error(rw, "Database exception", http.StatusInternalServerError)
+		p.logger.Fatal("Database exception: ", err)
+	}
+
+	if err != nil {
+		http.Error(rw, "Unable to convert to json", http.StatusInternalServerError)
+		p.logger.Fatal("Unable to convert to json :", err)
+		return
+	}
+	renderJSON(rw, allTweets)
+
+}
+
 func (p *TweetsHandler) PostTweet(rw http.ResponseWriter, h *http.Request) {
 
 	var request data.Tweet
