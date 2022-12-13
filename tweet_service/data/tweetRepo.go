@@ -92,3 +92,19 @@ func (s *TweetRepo) UnlikeTweet(like *Likes) (*Likes, error) {
 	}
 	return like, nil
 }
+
+func (s *TweetRepo) GetUsersWhoLikedTweet(id gocql.UUID) ([]Likes, error) {
+	var like Likes
+	var likes []Likes
+	iter := s.db.Query(`SELECT * FROM likes WHERE id = ?`).Bind(id).Iter()
+	for iter.Scan(&like.ID, &like.Username) {
+		likes = append(likes, like)
+	}
+
+	if err := iter.Close(); err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+
+	return likes, nil
+}

@@ -50,6 +50,9 @@ func main() {
 	unlikeRouter := router.Methods(http.MethodPost).Subrouter()
 	unlikeRouter.HandleFunc("/unlike/{id}", tweetsHandler.UnlikeTweet)
 
+	getUsersWhoLikedTweet := router.Methods(http.MethodGet).Subrouter()
+	getUsersWhoLikedTweet.HandleFunc("/likes/{id}", tweetsHandler.GetUsersWhoLikedTweet)
+
 	//Initialize the server
 	server := http.Server{
 		Addr:         ":" + port,        // Addr optionally specifies the TCP address for the server to listen on, in the form "host:port". If empty, ":http" (port 80) is used.
