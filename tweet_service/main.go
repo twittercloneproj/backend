@@ -47,18 +47,8 @@ func main() {
 	likeRouter := router.Methods(http.MethodPost).Subrouter()
 	likeRouter.HandleFunc("/like/{id}", tweetsHandler.LikeTweet)
 
-	//Set cors. Generally you wouldn't like to set cors to a "*". It is a wildcard and it will match any source.
-	//Normally you would set this to a set of ip's you want this api to serve. If you have an associated frontend app
-	//you would put the ip of the server where the frontend is running. The only time you don't need cors is when you
-	//calling the api from the same ip, or when you are using the proxy (for eg. Nginx)
-
-	//cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
-	//CORS
-
-	//cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"http://localhost:4200"}),
-	//	gorillaHandlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE"}),
-	//	gorillaHandlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"}),
-	//	gorillaHandlers.AllowCredentials())
+	unlikeRouter := router.Methods(http.MethodPost).Subrouter()
+	unlikeRouter.HandleFunc("/unlike/{id}", tweetsHandler.UnlikeTweet)
 
 	//Initialize the server
 	server := http.Server{

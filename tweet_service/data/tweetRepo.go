@@ -81,3 +81,14 @@ func (s *TweetRepo) LikeTweett(like *Likes) (*Likes, error) {
 	}
 	return like, nil
 }
+
+func (s *TweetRepo) UnlikeTweet(like *Likes) (*Likes, error) {
+	err := s.db.Query("DELETE FROM tweet_db.likes WHERE id=? and username=?").
+		Bind(like.ID, like.Username).
+		Exec()
+	if err != nil {
+		println(err)
+		return nil, err
+	}
+	return like, nil
+}
