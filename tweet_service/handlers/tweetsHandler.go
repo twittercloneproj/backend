@@ -116,14 +116,6 @@ func (p *TweetsHandler) LikeTweet(rw http.ResponseWriter, h *http.Request) {
 	id := vars["id"]
 
 	var request data.Likes
-	fmt.Println(request)
-
-	//err := json.NewDecoder(h.Body).Decode(&request)
-	//if err != nil {
-	//	log.Println(err)
-	//	http.Error(rw, err.Error(), http.StatusBadRequest)
-	//	return
-	//}
 
 	bearer := h.Header.Get("Authorization")
 	bearerToken := strings.Split(bearer, "Bearer ")
@@ -137,12 +129,42 @@ func (p *TweetsHandler) LikeTweet(rw http.ResponseWriter, h *http.Request) {
 	claims := GetMapClaims(token.Bytes())
 	username := claims["username"]
 
-	//TODO FIX, izbacuje 404 kad se prosledi id u putanju i nista ne printa
-	fmt.Println(request)
 	request.Username = username
 	request.ID, _ = gocql.ParseUUID(id)
 
 	tweet, err := p.repo.LikeTweett(&request)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	rw.WriteHeader(http.StatusOK)
+	jsonResponse(tweet, rw)
+}
+
+func (p *TweetsHandler) UnlikeTweet(rw http.ResponseWriter, h *http.Request) {
+
+	vars := mux.Vars(h)
+	id := vars["id"]
+
+	var request data.Likes
+
+	bearer := h.Header.Get("Authorization")
+	bearerToken := strings.Split(bearer, "Bearer ")
+	tokenString := bearerToken[1]
+
+	token, err := jwt.Parse([]byte(tokenString), verifier)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	claims := GetMapClaims(token.Bytes())
+	username := claims["username"]
+
+	request.Username = username
+	request.ID, _ = gocql.ParseUUID(id)
+
+	tweet, err := p.repo.UnlikeTweet(&request)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
