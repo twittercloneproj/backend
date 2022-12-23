@@ -22,11 +22,16 @@ type User struct {
 	Firm    string `bson:"firm,omitempty" json:"firm"`       // b
 	Website string `bson:"website,omitempty" json:"website"` // b
 
-	Role Role `bson:"role,omitempty" json:"role"`
-
-	//TODO
-	//Tweets []Tweets `bson:"therapy,omitempty" json:"tweets"`
+	Role    Role    `bson:"role,omitempty" json:"role"`
+	Privacy Privacy `bson:"privacy,omitempty" json:"privacy"`
 }
+
+type Privacy string
+
+const (
+	Private = "Private"
+	Public  = "Public"
+)
 
 type Claims struct {
 	ID       primitive.ObjectID `json:"id"`
@@ -58,32 +63,6 @@ func (p *User) FromJSON(r io.Reader) error {
 	d := json.NewDecoder(r)
 	return d.Decode(p)
 }
-
-//func (p *BusinessUsers) ToJSON(w io.Writer) error {
-//	e := json.NewEncoder(w)
-//	return e.Encode(p)
-//}
-//
-//func (p *BusinessUser) ToJSON(w io.Writer) error {
-//	e := json.NewEncoder(w)
-//	return e.Encode(p)
-//}
-//
-//func (p *BusinessUser) FromJSON(r io.Reader) error {
-//	d := json.NewDecoder(r)
-//	return d.Decode(p)
-//}
-
-//func DecodeBody(r io.Reader) (*BusinessUser, error) {
-//	dec := json.NewDecoder(r)
-//	dec.DisallowUnknownFields()
-//
-//	var businessUser *BusinessUser
-//	if err := dec.Decode(&businessUser); err != nil {
-//		return nil, err
-//	}
-//	return businessUser, nil
-//}
 
 func RenderJSON(w http.ResponseWriter, v interface{}) {
 	js, err := json.Marshal(v)

@@ -33,12 +33,15 @@ func main() {
 
 	store.Ping()
 
-	usersHandler := handlers.NewUsersHandler(logger, store)
+	profileHandler := handlers.NewUsersHandler(logger, store)
 
 	router := mux.NewRouter()
 
 	getRouter := router.Methods(http.MethodGet).Subrouter()
-	getRouter.HandleFunc("/about/{username}", usersHandler.GetUserByUsername)
+	getRouter.HandleFunc("/about/{username}", profileHandler.GetUserByUsername)
+
+	profilePrivacyRouter := router.Methods(http.MethodPatch).Subrouter()
+	profilePrivacyRouter.HandleFunc("/change-privacy", profileHandler.ChangePrivacy)
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"http://localhost:4200"}),
 		gorillaHandlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE"}),
