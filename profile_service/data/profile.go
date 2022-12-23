@@ -20,15 +20,13 @@ type User struct {
 	Firm    string `bson:"firm,omitempty" json:"firm"`       // b
 	Website string `bson:"website,omitempty" json:"website"` // b
 
-	Role Role `bson:"role,omitempty" json:"role"`
-
-	//Tweets []Tweets `bson:"tweets,omitempty" json:"tweets"`
+	Role    Role   `bson:"role,omitempty" json:"role"`
+	Privacy string `bson:"privacy,omitempty" json:"privacy"`
 }
 
-//type Tweets struct {
-//	ID   string `bson:"id,omitempty" json:"id"`
-//	Text string `bson:"text,omitempty" json:"text"`
-//}
+type UpdatePrivacy struct {
+	Privacy string `bson:"privacy,omitempty" json:"privacy"`
+}
 
 type Role string
 

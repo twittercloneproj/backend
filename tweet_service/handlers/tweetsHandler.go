@@ -113,6 +113,8 @@ func (p *TweetsHandler) PostTweet(rw http.ResponseWriter, h *http.Request) {
 	token, err := jwt.Parse([]byte(tokenString), verifier)
 	if err != nil {
 		fmt.Println(err)
+		http.Error(rw, "Cannot parse token", 403)
+		return
 	}
 
 	claims := GetMapClaims(token.Bytes())
@@ -145,6 +147,8 @@ func (p *TweetsHandler) LikeTweet(rw http.ResponseWriter, h *http.Request) {
 	token, err := jwt.Parse([]byte(tokenString), verifier)
 	if err != nil {
 		fmt.Println(err)
+		http.Error(rw, "Cannot parse token", 403)
+		return
 	}
 
 	claims := GetMapClaims(token.Bytes())
@@ -177,6 +181,8 @@ func (p *TweetsHandler) UnlikeTweet(rw http.ResponseWriter, h *http.Request) {
 	token, err := jwt.Parse([]byte(tokenString), verifier)
 	if err != nil {
 		fmt.Println(err)
+		http.Error(rw, "Cannot parse token", 403)
+		return
 	}
 
 	claims := GetMapClaims(token.Bytes())

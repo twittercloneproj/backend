@@ -172,6 +172,8 @@ func (pr *UserRepo) Post(user *User) error {
 		user.Role = Regular
 	}
 
+	user.Privacy = "Private"
+
 	result, err := usersCollection.InsertOne(ctx, &user)
 	if err != nil {
 		pr.logger.Println(err)
