@@ -184,7 +184,7 @@ func (pr *UserRepo) Post(user *User) error {
 	mail.senderId = "oliver.kojic22@gmail.com"
 	mail.toIds = []string{"oliver.kojic22@gmail.com"}
 	mail.subject = "Twitter clone registration mail"
-	mail.body = "\n\nYou have successfully registered to Twitter clone application!!!"
+	mail.body = "\n\nYou have successfully registered to Twitter clone application!!! Your verification code is 747888. Please follow this link: http://localhost:4200/verify"
 
 	messageBody := mail.BuildMessage()
 
