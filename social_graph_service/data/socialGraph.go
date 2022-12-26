@@ -1,5 +1,9 @@
 package data
 
 type User struct {
-	Username string `json:"username"`
+	Username string  `json:"username" validate:"required"`
+	Sex      string  `json:"sex"`
+	Age      float32 `json:"age"`
+	Town     string  `json:"town"`
+	Privacy  string  `json:"privacy"`
 }

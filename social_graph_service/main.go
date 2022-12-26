@@ -41,35 +41,9 @@ func main() {
 	postUserNode := router.Methods(http.MethodPost).Subrouter()
 	postUserNode.HandleFunc("/user", socialgraphHandler.CreateUser)
 
-	//
-	//	router.Use(moviesHandler.MiddlewareContentTypeSet)
-	//
-	//	getMovieByTitle := router.Methods(http.MethodGet).Subrouter()
-	//	getMovieByTitle.HandleFunc("/movies/title/{title}", moviesHandler.GetAllMoviesByTitle)
-	//
-	//	getAllMoviesWithCast := router.Methods(http.MethodGet).Subrouter()
-	//	getAllMoviesWithCast.HandleFunc("/movies/cast/{limit}", moviesHandler.GetAllMoviesWithCast)
-	//
-	//	getAllMovies := router.Methods(http.MethodGet).Subrouter()
-	//	getAllMovies.HandleFunc("/movies/{limit}", moviesHandler.GetAllMovies)
-	//
-	//
-	//	getActorRole := router.Methods(http.MethodGet).Subrouter()
-	//	getActorRole.HandleFunc("/person/{role}", moviesHandler.GetActorRole)
-	//
-	//	postMovieNode := router.Methods(http.MethodPost).Subrouter()
-	//	postMovieNode.HandleFunc("/movies", moviesHandler.CreateMovie)
-	//	postMovieNode.Use(moviesHandler.MiddlewareMovieDeserialization)
-	//
-	//	getActorProducer := router.Methods(http.MethodGet).Subrouter()
-	//	getActorProducer.HandleFunc("/actor/producer", moviesHandler.GetPersonWhoActedAndProducedMovie)
-	//
-	//	getKeanuMovies := router.Methods(http.MethodGet).Subrouter()
-	//	getKeanuMovies.HandleFunc("/actor/keanu/{limit}", moviesHandler.GetKeanuMovies)
-	//
-	//	getActorsWithMostMovies := router.Methods(http.MethodGet).Subrouter()
-	//	getActorsWithMostMovies.HandleFunc("/actor/most-movies/{limit}", moviesHandler.GetActorsWithMostMovies)
-	//
+	follow := router.Methods(http.MethodPost).Subrouter()
+	follow.HandleFunc("/follow/{username}", socialgraphHandler.Follow)
+
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
 	server := http.Server{

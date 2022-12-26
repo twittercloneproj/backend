@@ -91,7 +91,7 @@ services:
     #Mapping ports
     ports:
       # <port_on_local>:<port_in_machine>
-      - 8002:8002
+      - "8002:8002"
     #Will be accessible through os.Getenv("PORT")
     environment:
       - PORT=8002
@@ -112,11 +112,11 @@ services:
     restart: always
     ports:
       # bolt
-      - "7687:7687"
+      - 7687:7687
       # http
-      - "7474:7474"
+      - 7474:7474
       # https
-      - "7473:7473"
+      - 7473:7473
     healthcheck:
       # test: [ "CMD-SHELL", "echo RETURN 1 | cypher-shell -a <NEO4J_dbms_connector_bolt_listen__address> -u <user defined username> -p <user defined password> || exit 1" ]
       test:

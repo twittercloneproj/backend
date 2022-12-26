@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	social_graph "auth_service/client/social-graph"
 	"auth_service/data"
 	"context"
 	"encoding/json"
@@ -18,15 +19,16 @@ import (
 type KeyUser struct{}
 
 type UsersHandler struct {
-	logger *log.Logger
-	repo   *data.UserRepo
+	logger      *log.Logger
+	repo        *data.UserRepo
+	socialGraph social_graph.Client
 }
 
 var jwtKey = []byte(os.Getenv("SECRET_KEY"))
 
 // Injecting the logger makes this code much more testable.
-func NewUsersHandler(l *log.Logger, r *data.UserRepo) *UsersHandler {
-	return &UsersHandler{l, r}
+func NewUsersHandler(l *log.Logger, r *data.UserRepo, socialGraph social_graph.Client) *UsersHandler {
+	return &UsersHandler{l, r, socialGraph}
 }
 
 func sendMailSimple(subject string, body string, to []string) {
@@ -69,7 +71,15 @@ func (p *UsersHandler) GetAllUsers(rw http.ResponseWriter, h *http.Request) {
 
 func (p *UsersHandler) PostUsers(rw http.ResponseWriter, h *http.Request) {
 	usr := h.Context().Value(KeyUser{}).(*data.User)
-	p.repo.Post(usr)
+	err := p.repo.Post(usr)
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+	}
+
+	err = p.socialGraph.CreateUser(usr)
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+	}
 	rw.WriteHeader(http.StatusCreated)
 }
 

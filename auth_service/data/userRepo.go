@@ -98,24 +98,6 @@ func (pr *UserRepo) GetOneUser(username string) (*User, error) {
 	return &user, nil
 }
 
-//ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-//defer cancel()
-//
-//patientsCollection := pr.getCollection()
-//
-//var patients Users
-//patientsCursor, err := patientsCollection.Find(ctx, bson.M{"username": username})
-//if err != nil {
-//	pr.logger.Println(err)
-//	return nil, err
-//}
-//if err = patientsCursor.All(ctx, &patients); err != nil {
-//	pr.logger.Println(err)
-//	return nil, err
-//}
-//return patients, nil
-//}
-
 func (store *AuthRepoMongoDb) filterOne(filter interface{}) (user *User, err error) {
 	result := store.credentials.FindOne(context.TODO(), filter)
 	err = result.Decode(&user)
