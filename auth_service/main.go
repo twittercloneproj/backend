@@ -1,6 +1,7 @@
 package main
 
 import (
+	social_graph "auth_service/client/social-graph"
 	"auth_service/data"
 	"auth_service/handlers"
 	"context"
@@ -33,7 +34,9 @@ func main() {
 
 	store.Ping()
 
-	usersHandler := handlers.NewUsersHandler(logger, store)
+	socialGraphClient := social_graph.NewClient("social_graph_service", "8002")
+
+	usersHandler := handlers.NewUsersHandler(logger, store, socialGraphClient)
 
 	router := mux.NewRouter()
 

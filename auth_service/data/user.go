@@ -22,11 +22,9 @@ type User struct {
 	Firm    string `bson:"firm,omitempty" json:"firm"`       // b
 	Website string `bson:"website,omitempty" json:"website"` // b
 
-	Role    Role    `bson:"role,omitempty" json:"role"`
-	Privacy Privacy `bson:"privacy,omitempty" json:"privacy"`
+	Role    Role   `bson:"role,omitempty" json:"role"`
+	Privacy string `bson:"privacy,omitempty" json:"privacy"`
 }
-
-type Privacy string
 
 const (
 	Private = "Private"
