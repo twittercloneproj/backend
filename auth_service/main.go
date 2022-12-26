@@ -5,9 +5,12 @@ import (
 	"auth_service/data"
 	"auth_service/handlers"
 	"context"
+	"fmt"
 	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"log"
+	"github.com/sirupsen/logrus"
+	easy "github.com/t-tomalak/logrus-easy-formatter"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -23,12 +26,26 @@ func main() {
 	timeoutContext, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	logger := log.New(os.Stdout, "[user-api] ", log.LstdFlags)
-	storeLogger := log.New(os.Stdout, "[user-store] ", log.LstdFlags)
-
-	store, err := data.New(timeoutContext, storeLogger)
+	f, err := os.OpenFile("log.txt", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
-		logger.Fatal(err)
+		fmt.Println("Failed to create logfile" + "log.txt")
+		panic(err)
+	}
+	defer f.Close()
+
+	log := &logrus.Logger{
+		// Log into f file handler and on os.Stdout
+		Out:   io.MultiWriter(f, os.Stdout),
+		Level: logrus.InfoLevel,
+		Formatter: &easy.Formatter{
+			LogFormat: "[%lvl%]: - %msg%\n",
+		},
+	}
+
+	store, err := data.New(timeoutContext, log)
+
+	if err != nil {
+		log.Fatal(err)
 	}
 	defer store.Disconnect(timeoutContext)
 
@@ -36,7 +53,7 @@ func main() {
 
 	socialGraphClient := social_graph.NewClient("social_graph_service", "8002")
 
-	usersHandler := handlers.NewUsersHandler(logger, store, socialGraphClient)
+	usersHandler := handlers.NewUsersHandler(log, store, socialGraphClient)
 
 	router := mux.NewRouter()
 
@@ -71,7 +88,7 @@ func main() {
 	//certFile := "twitter.crt"
 	//keyFile := "twitter.key"
 
-	logger.Println("Server listening on port", port)
+	log.Println("Server listening on port", port)
 	//Distribute all the connections to goroutines
 	go func() {
 		//err := server.ListenAndServeTLS(certFile, keyFile)
@@ -79,7 +96,7 @@ func main() {
 		err := server.ListenAndServe()
 
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(err)
 		}
 	}()
 
@@ -88,11 +105,11 @@ func main() {
 	signal.Notify(sigCh, os.Kill)
 
 	sig := <-sigCh
-	logger.Println("Received terminate, graceful shutdown", sig)
+	log.Println("Received terminate, graceful shutdown", sig)
 
 	//Try to shutdown gracefully
 	if server.Shutdown(timeoutContext) != nil {
-		logger.Fatal("Cannot gracefully shutdown...")
+		log.Fatal("Cannot gracefully shutdown...")
 	}
-	logger.Println("Server stopped")
+	log.Println("Server stopped")
 }

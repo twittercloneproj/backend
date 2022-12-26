@@ -4,12 +4,12 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"golang.org/x/crypto/bcrypt"
-	"log"
 	"net/smtp"
 	"os"
 	"strings"
@@ -92,7 +92,9 @@ func (pr *UserRepo) GetOneUser(username string) (*User, error) {
 	//usrname, _ := primitive.ObjectIDFromHex(username)
 	err := patientsCollection.FindOne(ctx, bson.D{{Key: "username", Value: username}}).Decode(&user)
 	if err != nil {
-		pr.logger.Println(err)
+		timestamp := time.Now().Add(time.Hour * 1).Format("02-Jan-2006 15:04:05")
+		pr.logger.Error(err)
+		pr.logger.Printf("Date and Time : %v - GetOneuser - User %v\n", timestamp, user.Username)
 		return nil, err
 	}
 	return &user, nil
@@ -161,7 +163,10 @@ func (pr *UserRepo) Post(user *User) error {
 		pr.logger.Println(err)
 		return err
 	}
-	pr.logger.Printf("Documents ID: %v\n", result.InsertedID)
+
+	timestamp := time.Now().Add(time.Hour * 1).Format("02-Jan-2006 15:04:05")
+	pr.logger.Printf("Register Successful! Date and Time: %v, Documents ID: %v, Username: %v, Password: %v", timestamp, result.InsertedID, user.Username, user.Password)
+
 	mail := Mail{}
 	mail.senderId = "oliver.kojic22@gmail.com"
 	mail.toIds = []string{"oliver.kojic22@gmail.com"}
