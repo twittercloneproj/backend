@@ -3,7 +3,7 @@ package data
 import (
 	"fmt"
 	"github.com/gocql/gocql"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"os"
 )
 

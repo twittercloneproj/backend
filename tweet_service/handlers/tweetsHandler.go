@@ -7,10 +7,11 @@ import (
 	"github.com/cristalhq/jwt/v4"
 	"github.com/gocql/gocql"
 	"github.com/gorilla/mux"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 	"tweet_service/data"
 )
 
@@ -129,6 +130,8 @@ func (p *TweetsHandler) PostTweet(rw http.ResponseWriter, h *http.Request) {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
 	}
+	timestamp := time.Now().Add(time.Hour * 1).Format("02-Jan-2006 15:04:05")
+	p.logger.Printf("Tweet posted successfully! Date and Time: %v, Posted by: %v, Tweet ID: %v ", timestamp, request.PostedBy, request.ID)
 	rw.WriteHeader(http.StatusOK)
 	jsonResponse(tweet, rw)
 }
@@ -163,6 +166,8 @@ func (p *TweetsHandler) LikeTweet(rw http.ResponseWriter, h *http.Request) {
 		return
 	}
 
+	timestamp := time.Now().Add(time.Hour * 1).Format("02-Jan-2006 15:04:05")
+	p.logger.Printf("Tweet liked successfully! Date and Time: %v, Liked by: %v, Tweet ID: %v ", timestamp, request.Username, request.ID)
 	rw.WriteHeader(http.StatusOK)
 	jsonResponse(tweet, rw)
 }
@@ -197,6 +202,8 @@ func (p *TweetsHandler) UnlikeTweet(rw http.ResponseWriter, h *http.Request) {
 		return
 	}
 
+	timestamp := time.Now().Add(time.Hour * 1).Format("02-Jan-2006 15:04:05")
+	p.logger.Printf("Tweet unliked successfully! Date and Time: %v, Liked by: %v, Tweet ID: %v ", timestamp, request.Username, request.ID)
 	rw.WriteHeader(http.StatusOK)
 	jsonResponse(tweet, rw)
 }
