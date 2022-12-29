@@ -67,13 +67,48 @@ func (m *SocialGraphHandler) Follow(rw http.ResponseWriter, h *http.Request) {
 	claims := GetMapClaims(token.Bytes())
 	from := claims["username"]
 
-	errr := m.repo.FollowPerson(from, to)
-	if errr != nil {
+	user, err := m.repo.GetUser(to)
+	if err != nil {
+		http.Error(rw, "Cannot check user privacy, try again later", 500)
+		return
+	}
+
+	var dberr error
+	if user.Privacy == "Private" {
+		dberr = m.repo.FollowPerson(from, to, "REQUEST")
+	} else {
+		dberr = m.repo.FollowPerson(from, to, "FOLLOW")
+	}
+	if dberr != nil {
 		m.logger.Print("Database exception: ", err)
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	rw.WriteHeader(http.StatusCreated)
+}
+
+func (m *SocialGraphHandler) GetFollowRequests(rw http.ResponseWriter, h *http.Request) {
+	bearer := h.Header.Get("Authorization")
+	bearerToken := strings.Split(bearer, "Bearer ")
+	tokenString := bearerToken[1]
+
+	token, err := jwt.Parse([]byte(tokenString), verifier)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(rw, "Cannot parse token", 403)
+		return
+	}
+
+	claims := GetMapClaims(token.Bytes())
+	username := claims["username"]
+
+	users, err := m.repo.GetFollowRequests(username)
+
+	if err != nil {
+		http.Error(rw, "Cannot find requests", 500)
+		return
+	}
+	jsonResponse(users, rw)
 }
 
 func GetMapClaims(tokenBytes []byte) map[string]string {
@@ -85,4 +120,19 @@ func GetMapClaims(tokenBytes []byte) map[string]string {
 	}
 
 	return claims
+}
+
+func jsonResponse(object interface{}, w http.ResponseWriter) {
+	resp, err := json.Marshal(object)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, err = w.Write(resp)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }

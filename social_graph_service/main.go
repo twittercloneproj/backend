@@ -44,6 +44,12 @@ func main() {
 	follow := router.Methods(http.MethodPost).Subrouter()
 	follow.HandleFunc("/follow/{username}", socialgraphHandler.Follow)
 
+	//followAccept := router.Methods(http.MethodPost).Subrouter()
+	//followAccept.HandleFunc("/accept-request/{username}", socialgraphHandler.Follow) //username je red iz tabele na frontu, tj onaj koji je poslao zahtev za pracenje
+
+	requests := router.Methods(http.MethodGet).Subrouter()
+	requests.HandleFunc("/requests", socialgraphHandler.GetFollowRequests)
+
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
 	server := http.Server{
