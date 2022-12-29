@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"fmt"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"log"
 	"os"
@@ -79,12 +80,12 @@ func (mr *SocialGraphRepo) WritePerson(user *User) error {
 	return nil
 }
 
-func (mr *SocialGraphRepo) FollowPerson(from string, to string) error {
+func (mr *SocialGraphRepo) FollowPerson(from string, to string, relationship string) error {
 	ctx := context.Background()
 	session := mr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
 	defer session.Close(ctx)
 
-	var query = "MATCH (a:User), (b:User) WHERE a.username = $from AND b.username = $to CREATE (a)-[r:FOLLOW]->(b) RETURN type(r)"
+	query := fmt.Sprintf("MATCH (a:User), (b:User) WHERE a.username = $from AND b.username = $to CREATE (a)-[r:%s]->(b) RETURN type(r)", relationship)
 
 	session.ExecuteWrite(ctx,
 		func(transaction neo4j.ManagedTransaction) (any, error) {
@@ -104,25 +105,73 @@ func (mr *SocialGraphRepo) FollowPerson(from string, to string) error {
 
 }
 
-//func (repo *SocialGraphRepo) FollowSTEVAN(ctx context.Context, fromUsername string, toUsername string, query string) error {
-//	_, span := repo.tracer.Start(ctx, "RepositoryNeo4j.SaveFollow")
-//	defer span.End()
-//
-//	session := repo.driver.NewSession(neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
-//
-//	defer session.Close()
-//	_, er := session.WriteTransaction(func(tx neo4j.Transaction) (interface{}, error) {
-//		_, err := tx.Run(query, map[string]interface{}{"from": fromUsername, "to": toUsername})
-//		if err != nil {
-//			span.SetStatus(codes.Error, err.Error())
-//			log.Println(err)
-//			return nil, err
-//		}
-//		return nil, nil
-//	})
-//	if er != nil {
-//		span.SetStatus(codes.Error, er.Error())
-//		return er
-//	}
-//	return nil
-//}
+func (mr *SocialGraphRepo) GetUser(username string) (*User, error) {
+	ctx := context.Background()
+	session := mr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	defer session.Close(ctx)
+
+	query := "MATCH (user {username: $username}) RETURN user.username as username, user.privacy as privacy"
+
+	user, err := session.ExecuteRead(ctx,
+		func(transaction neo4j.ManagedTransaction) (any, error) {
+			result, err := transaction.Run(ctx, query, map[string]interface{}{"username": username})
+
+			if err != nil {
+				return nil, err
+			}
+			result.Next(ctx)
+			r := result.Record()
+
+			if r == nil {
+				return nil, nil
+			}
+
+			privacy, _ := r.Get("privacy")
+			u, _ := r.Get("username")
+
+			return &User{
+				Privacy:  privacy.(string),
+				Username: u.(string),
+			}, nil
+		})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return user.(*User), nil
+
+}
+
+func (mr *SocialGraphRepo) GetFollowRequests(username string) ([]User, error) {
+	ctx := context.Background()
+	session := mr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	defer session.Close(ctx)
+
+	query := "MATCH (user:User)<-[:REQUEST]-(request) WHERE user.username = $username RETURN request.username as username"
+
+	users, err := session.ExecuteRead(ctx,
+		func(transaction neo4j.ManagedTransaction) (any, error) {
+			result, err := transaction.Run(ctx, query, map[string]interface{}{"username": username})
+
+			if err != nil {
+				return nil, err
+			}
+			var users []User
+			for result.Next(ctx) {
+				r := result.Record()
+				u, _ := r.Get("username")
+
+				users = append(users, User{Username: u.(string)})
+			}
+
+			return users, nil
+		})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return users.([]User), nil
+
+}
