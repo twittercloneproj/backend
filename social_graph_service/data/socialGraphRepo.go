@@ -51,8 +51,6 @@ func (mr *SocialGraphRepo) CloseDriverConnection(ctx context.Context) {
 }
 
 func (mr *SocialGraphRepo) WritePerson(user *User) error {
-	// Neo4J Sessions are lightweight so we create one for each transaction (Cassandra sessions are not lightweight!)
-	// Sessions are NOT thread safe
 	ctx := context.Background()
 	session := mr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
 	defer session.Close(ctx)
@@ -61,8 +59,8 @@ func (mr *SocialGraphRepo) WritePerson(user *User) error {
 	savedUser, err := session.ExecuteWrite(ctx,
 		func(transaction neo4j.ManagedTransaction) (any, error) {
 			result, err := transaction.Run(ctx,
-				"CREATE (u:User) SET u.username = $username RETURN u.username + ', from node ' + id(u)",
-				map[string]any{"username": user.Username})
+				"CREATE (u:User) SET u.username = $username, u.sex = $sex, u.age = $age, u.town = $town, u.privacy = $privacy RETURN u.username + ', from node ' + id(u)",
+				map[string]any{"username": user.Username, "sex": user.Sex, "age": user.Age, "town": user.Town, "privacy": user.Privacy})
 			if err != nil {
 				return nil, err
 			}
@@ -80,3 +78,51 @@ func (mr *SocialGraphRepo) WritePerson(user *User) error {
 	mr.logger.Println(savedUser.(string))
 	return nil
 }
+
+func (mr *SocialGraphRepo) FollowPerson(from string, to string) error {
+	ctx := context.Background()
+	session := mr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	defer session.Close(ctx)
+
+	var query = "MATCH (a:User), (b:User) WHERE a.username = $from AND b.username = $to CREATE (a)-[r:FOLLOW]->(b) RETURN type(r)"
+
+	session.ExecuteWrite(ctx,
+		func(transaction neo4j.ManagedTransaction) (any, error) {
+			result, err := transaction.Run(ctx, query, map[string]interface{}{"from": from, "to": to})
+			if err != nil {
+				return nil, err
+			}
+
+			if result.Next(ctx) {
+				return result.Record().Values[0], nil
+			}
+
+			return nil, result.Err()
+		})
+
+	return nil
+
+}
+
+//func (repo *SocialGraphRepo) FollowSTEVAN(ctx context.Context, fromUsername string, toUsername string, query string) error {
+//	_, span := repo.tracer.Start(ctx, "RepositoryNeo4j.SaveFollow")
+//	defer span.End()
+//
+//	session := repo.driver.NewSession(neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
+//
+//	defer session.Close()
+//	_, er := session.WriteTransaction(func(tx neo4j.Transaction) (interface{}, error) {
+//		_, err := tx.Run(query, map[string]interface{}{"from": fromUsername, "to": toUsername})
+//		if err != nil {
+//			span.SetStatus(codes.Error, err.Error())
+//			log.Println(err)
+//			return nil, err
+//		}
+//		return nil, nil
+//	})
+//	if er != nil {
+//		span.SetStatus(codes.Error, er.Error())
+//		return er
+//	}
+//	return nil
+//}
