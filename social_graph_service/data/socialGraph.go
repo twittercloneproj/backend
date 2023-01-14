@@ -7,3 +7,7 @@ type User struct {
 	Town     string  `json:"town"`
 	Privacy  string  `json:"privacy"`
 }
+
+type ApproveRequest struct {
+	Approved bool `json:"approved"`
+}

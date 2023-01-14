@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	social_graph "auth_service/client/social-graph"
 	"auth_service/data"
 	"encoding/json"
 	"fmt"
@@ -17,17 +18,32 @@ var jwtKey = []byte(os.Getenv("SECRET_KEY"))
 var verifier, _ = jwt.NewVerifierHS(jwt.HS256, jwtKey)
 
 type UsersHandler struct {
-	logger *log.Logger
-	repo   *data.UserRepo
+	logger      *log.Logger
+	repo        *data.UserRepo
+	socialGraph social_graph.Client
 }
 
-func NewUsersHandler(l *log.Logger, r *data.UserRepo) *UsersHandler {
-	return &UsersHandler{l, r}
+func NewUsersHandler(l *log.Logger, r *data.UserRepo, socialGraph social_graph.Client) *UsersHandler {
+	return &UsersHandler{l, r, socialGraph}
 }
 
 func (p *UsersHandler) GetUserByUsername(rw http.ResponseWriter, h *http.Request) {
 	vars := mux.Vars(h)
 	username := vars["username"]
+
+	bearer := h.Header.Get("Authorization")
+	bearerToken := strings.Split(bearer, "Bearer ")
+	tokenString := bearerToken[1]
+
+	token, err := jwt.Parse([]byte(tokenString), verifier)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(rw, "Cannot parse token", 403)
+		return
+	}
+
+	claims := GetMapClaims(token.Bytes())
+	authUsername := claims["username"]
 
 	patient, err := p.repo.GetOneUser(username)
 	if err != nil {
@@ -38,6 +54,14 @@ func (p *UsersHandler) GetUserByUsername(rw http.ResponseWriter, h *http.Request
 		http.Error(rw, "Patient with given id not found", http.StatusNotFound)
 		p.logger.Printf("Patient with id: '%s' not found", username)
 		return
+	}
+
+	if patient.Privacy == "Private" {
+		access, _ := p.socialGraph.CanAccessProfileData(username, tokenString)
+		if !access && authUsername != username {
+			http.Error(rw, "You cannot have access to this profile", http.StatusForbidden)
+			return
+		}
 	}
 
 	err = patient.ToJSON(rw)

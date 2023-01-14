@@ -75,9 +75,15 @@ func (m *SocialGraphHandler) Follow(rw http.ResponseWriter, h *http.Request) {
 
 	var dberr error
 	if user.Privacy == "Private" {
-		dberr = m.repo.FollowPerson(from, to, "REQUEST")
+		exists, _ := m.repo.CheckIfRelationshipExists(from, to, "REQUEST")
+		if !exists {
+			dberr = m.repo.FollowPerson(from, to, "REQUEST")
+		}
 	} else {
-		dberr = m.repo.FollowPerson(from, to, "FOLLOW")
+		exists, _ := m.repo.CheckIfRelationshipExists(from, to, "FOLLOW")
+		if !exists {
+			dberr = m.repo.FollowPerson(from, to, "FOLLOW")
+		}
 	}
 	if dberr != nil {
 		m.logger.Print("Database exception: ", err)
@@ -85,6 +91,113 @@ func (m *SocialGraphHandler) Follow(rw http.ResponseWriter, h *http.Request) {
 		return
 	}
 	rw.WriteHeader(http.StatusCreated)
+}
+
+func (m *SocialGraphHandler) CheckFollow(rw http.ResponseWriter, h *http.Request) {
+
+	vars := mux.Vars(h)
+	to := vars["username"]
+
+	bearer := h.Header.Get("Authorization")
+	bearerToken := strings.Split(bearer, "Bearer ")
+	tokenString := bearerToken[1]
+
+	token, err := jwt.Parse([]byte(tokenString), verifier)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(rw, "Cannot parse token", 403)
+		return
+	}
+
+	claims := GetMapClaims(token.Bytes())
+	from := claims["username"]
+
+	follow, dberr := m.repo.CheckIfRelationshipExists(from, to, "FOLLOW")
+
+	if dberr != nil {
+		m.logger.Print("Database exception: ", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if follow {
+		rw.WriteHeader(http.StatusOK)
+		return
+	} else {
+		rw.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+}
+
+func (m *SocialGraphHandler) RemoveFollow(rw http.ResponseWriter, h *http.Request) {
+
+	vars := mux.Vars(h)
+	to := vars["username"]
+
+	bearer := h.Header.Get("Authorization")
+	bearerToken := strings.Split(bearer, "Bearer ")
+	tokenString := bearerToken[1]
+
+	token, err := jwt.Parse([]byte(tokenString), verifier)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(rw, "Cannot parse token", 403)
+		return
+	}
+
+	claims := GetMapClaims(token.Bytes())
+	from := claims["username"]
+
+	dberr := m.repo.RemoveFollow(from, to, "FOLLOW")
+
+	if dberr != nil {
+		m.logger.Print("Database exception: ", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	rw.WriteHeader(http.StatusOK)
+}
+
+func (m *SocialGraphHandler) AcceptRejectRequest(rw http.ResponseWriter, h *http.Request) {
+
+	vars := mux.Vars(h)
+	from := vars["username"]
+
+	bearer := h.Header.Get("Authorization")
+	bearerToken := strings.Split(bearer, "Bearer ")
+	tokenString := bearerToken[1]
+
+	token, err := jwt.Parse([]byte(tokenString), verifier)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(rw, "Cannot parse token", 403)
+		return
+	}
+
+	claims := GetMapClaims(token.Bytes())
+	authUsername := claims["username"]
+
+	var approved data.ApproveRequest
+	err = json.NewDecoder(h.Body).Decode(&approved)
+	if err != nil {
+		http.Error(rw, "Invalid body", 500)
+		return
+	}
+
+	dberr := m.repo.RemoveFollow(from, authUsername, "REQUEST")
+	exists, dberr := m.repo.CheckIfRelationshipExists(from, authUsername, "FOLLOW")
+
+	if approved.Approved && !exists {
+		dberr = m.repo.FollowPerson(from, authUsername, "FOLLOW")
+	}
+
+	if dberr != nil {
+		m.logger.Print("Database exception: ", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	rw.WriteHeader(http.StatusOK)
 }
 
 func (m *SocialGraphHandler) GetFollowRequests(rw http.ResponseWriter, h *http.Request) {
