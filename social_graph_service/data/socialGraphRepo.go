@@ -105,6 +105,51 @@ func (mr *SocialGraphRepo) FollowPerson(from string, to string, relationship str
 
 }
 
+func (mr *SocialGraphRepo) RemoveFollow(from string, to string, relationship string) error {
+	ctx := context.Background()
+	session := mr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	defer session.Close(ctx)
+
+	query := fmt.Sprintf("MATCH (f {username: $from})-[r:%s]->(t {username: $to})DELETE r", relationship)
+
+	session.ExecuteWrite(ctx,
+		func(transaction neo4j.ManagedTransaction) (any, error) {
+			_, err := transaction.Run(ctx, query, map[string]interface{}{"from": from, "to": to})
+			if err != nil {
+				return nil, err
+			}
+
+			return nil, nil
+		})
+
+	return nil
+
+}
+
+func (mr *SocialGraphRepo) CheckIfRelationshipExists(usernameFrom, usernameTo, relationship string) (bool, error) {
+	ctx := context.Background()
+	session := mr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	defer session.Close(ctx)
+
+	query := fmt.Sprintf("MATCH (f:User {username: $from }), (t:User {username: $to}) RETURN EXISTS( (f)-[:%s]->(t)) as exists", relationship)
+
+	res, _ := session.ExecuteRead(ctx,
+		func(transaction neo4j.ManagedTransaction) (any, error) {
+			result, err := transaction.Run(ctx, query, map[string]interface{}{"from": usernameFrom, "to": usernameTo})
+			if err != nil {
+				return false, err
+			}
+			result.Next(ctx)
+			r := result.Record()
+			if r == nil {
+				return false, nil
+			}
+			res, _ := r.Get("exists")
+			return res, nil
+		})
+	return res.(bool), nil
+}
+
 func (mr *SocialGraphRepo) GetUser(username string) (*User, error) {
 	ctx := context.Background()
 	session := mr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
