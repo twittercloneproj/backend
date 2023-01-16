@@ -47,7 +47,7 @@ func main() {
 	profilePrivacyRouter.HandleFunc("/change-privacy", profileHandler.ChangePrivacy)
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"http://localhost:4200"}),
-		gorillaHandlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE"}),
+		gorillaHandlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "PATCH"}),
 		gorillaHandlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"}),
 		gorillaHandlers.AllowCredentials())
 
