@@ -220,3 +220,70 @@ func (mr *SocialGraphRepo) GetFollowRequests(username string) ([]User, error) {
 	return users.([]User), nil
 
 }
+
+func (mr *SocialGraphRepo) GetFollowersForUser(username string) ([]User, error) {
+	ctx := context.Background()
+	session := mr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	defer session.Close(ctx)
+
+	query := "MATCH (user:User)<-[:FOLLOW]-(request) WHERE user.username = $username RETURN request.username as username"
+
+	users, err := session.ExecuteRead(ctx,
+		func(transaction neo4j.ManagedTransaction) (any, error) {
+			result, err := transaction.Run(ctx, query, map[string]interface{}{"username": username})
+
+			if err != nil {
+				return nil, err
+			}
+			var users []User
+			for result.Next(ctx) {
+				r := result.Record()
+				u, _ := r.Get("username")
+
+				users = append(users, User{Username: u.(string)})
+			}
+
+			return users, nil
+		})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return users.([]User), nil
+
+}
+
+// korisnici koje prati korisnik
+func (mr *SocialGraphRepo) GetFollowingUsers(username string) ([]User, error) {
+	ctx := context.Background()
+	session := mr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	defer session.Close(ctx)
+
+	query := "MATCH (user:User)-[:FOLLOW]->(request) WHERE user.username = $username RETURN request.username as username"
+
+	users, err := session.ExecuteRead(ctx,
+		func(transaction neo4j.ManagedTransaction) (any, error) {
+			result, err := transaction.Run(ctx, query, map[string]interface{}{"username": username})
+
+			if err != nil {
+				return nil, err
+			}
+			var users []User
+			for result.Next(ctx) {
+				r := result.Record()
+				u, _ := r.Get("username")
+
+				users = append(users, User{Username: u.(string)})
+			}
+
+			return users, nil
+		})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return users.([]User), nil
+
+}
