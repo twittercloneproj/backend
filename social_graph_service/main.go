@@ -56,6 +56,12 @@ func main() {
 	requests := router.Methods(http.MethodGet).Subrouter()
 	requests.HandleFunc("/requests", socialgraphHandler.GetFollowRequests)
 
+	followers := router.Methods(http.MethodGet).Subrouter()
+	followers.HandleFunc("/followers/{username}", socialgraphHandler.GetFollowersForUser)
+
+	following := router.Methods(http.MethodGet).Subrouter()
+	following.HandleFunc("/{username}/following", socialgraphHandler.GetFollowingUsers)
+
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
 	server := http.Server{

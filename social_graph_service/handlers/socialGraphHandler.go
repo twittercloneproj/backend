@@ -224,6 +224,34 @@ func (m *SocialGraphHandler) GetFollowRequests(rw http.ResponseWriter, h *http.R
 	jsonResponse(users, rw)
 }
 
+func (m *SocialGraphHandler) GetFollowersForUser(rw http.ResponseWriter, h *http.Request) {
+
+	vars := mux.Vars(h)
+	username := vars["username"]
+
+	users, err := m.repo.GetFollowersForUser(username)
+
+	if err != nil {
+		http.Error(rw, "Cannot find requests", 500)
+		return
+	}
+	jsonResponse(users, rw)
+}
+
+func (m *SocialGraphHandler) GetFollowingUsers(rw http.ResponseWriter, h *http.Request) {
+
+	vars := mux.Vars(h)
+	username := vars["username"]
+
+	users, err := m.repo.GetFollowingUsers(username)
+
+	if err != nil {
+		http.Error(rw, "Cannot find requests", 500)
+		return
+	}
+	jsonResponse(users, rw)
+}
+
 func GetMapClaims(tokenBytes []byte) map[string]string {
 	var claims map[string]string
 
