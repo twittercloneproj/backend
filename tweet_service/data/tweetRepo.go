@@ -59,10 +59,18 @@ func (s *TweetRepo) GetTweetListByUsername(username string) ([]Tweet, error) {
 	return tweets, nil
 }
 
-func (s *TweetRepo) SaveTweet(tweet *Tweet) (*Tweet, error) {
-	err := s.db.Query("INSERT INTO tweet_by_user(id, text, posted_by) VALUES(?, ?, ?)").
-		Bind(tweet.ID, tweet.Text, tweet.PostedBy).
+func (s *TweetRepo) SaveTweet(tweet *Tweet, usernames []string) (*Tweet, error) {
+	err := s.db.Query("INSERT INTO tweet_by_user(id, text, posted_by, retweet, original_posted_by) VALUES(?, ?, ?, ?, ?)").
+		Bind(tweet.ID, tweet.Text, tweet.PostedBy, tweet.Retweet, tweet.OriginalPostedBy).
 		Exec()
+
+	for _, username := range usernames {
+		err = s.db.Query("INSERT INTO feed_by_user(id, text, posted_by, username, retweet, original_posted_by) VALUES(?, ?, ?, ?, ?, ?)").
+			Bind(tweet.ID, tweet.Text, tweet.PostedBy, username, tweet.Retweet, tweet.OriginalPostedBy).
+			Exec()
+
+	}
+
 	if err != nil {
 		println(err)
 		return nil, err
@@ -107,4 +115,20 @@ func (s *TweetRepo) GetUsersWhoLikedTweet(id gocql.UUID) ([]Likes, error) {
 	}
 
 	return likes, nil
+}
+
+func (s *TweetRepo) GetHomeFeed(username string) ([]Tweet, error) {
+	var tweet Tweet
+	var tweets []Tweet
+	iter := s.db.Query(`SELECT id, posted_by, text, retweet, original_posted_by FROM feed_by_user WHERE username = ?`).Bind(username).Iter()
+	for iter.Scan(&tweet.ID, &tweet.PostedBy, &tweet.Text, &tweet.Retweet, &tweet.OriginalPostedBy) {
+		tweets = append(tweets, tweet)
+	}
+
+	if err := iter.Close(); err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+
+	return tweets, nil
 }

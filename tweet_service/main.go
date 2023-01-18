@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"time"
+	social_graph "tweet_service/client/social-graph"
 	"tweet_service/data"
 	"tweet_service/handlers"
 )
@@ -29,8 +30,10 @@ func main() {
 		logger.Fatal(err)
 	}
 
+	socialGraphClient := social_graph.NewClient("social_graph_service", "8002")
+
 	//Initialize the handler and inject said logger
-	tweetsHandler := handlers.NewTweetsHandler(logger, store)
+	tweetsHandler := handlers.NewTweetsHandler(logger, store, socialGraphClient)
 
 	//Initialize the router and add a middleware for all the requests
 	router := mux.NewRouter()
@@ -52,6 +55,9 @@ func main() {
 
 	getUsersWhoLikedTweet := router.Methods(http.MethodGet).Subrouter()
 	getUsersWhoLikedTweet.HandleFunc("/likes/{id}", tweetsHandler.GetUsersWhoLikedTweet)
+
+	home := router.Methods(http.MethodGet).Subrouter()
+	home.HandleFunc("/home", tweetsHandler.HomeFeed)
 
 	//Initialize the server
 	server := http.Server{

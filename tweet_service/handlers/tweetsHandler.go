@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	social_graph "tweet_service/client/social-graph"
 	"tweet_service/data"
 )
 
@@ -23,11 +24,12 @@ var verifier, _ = jwt.NewVerifierHS(jwt.HS256, jwtKey)
 type TweetsHandler struct {
 	logger *log.Logger
 	// NoSQL: injecting product repository
-	repo *data.TweetRepo
+	repo        *data.TweetRepo
+	socialGraph social_graph.Client
 }
 
-func NewTweetsHandler(l *log.Logger, r *data.TweetRepo) *TweetsHandler {
-	return &TweetsHandler{l, r}
+func NewTweetsHandler(l *log.Logger, r *data.TweetRepo, socialGraph social_graph.Client) *TweetsHandler {
+	return &TweetsHandler{l, r, socialGraph}
 }
 
 func renderJSON(w http.ResponseWriter, v interface{}) {
@@ -95,6 +97,39 @@ func (p *TweetsHandler) GetUsersWhoLikedTweet(rw http.ResponseWriter, h *http.Re
 
 }
 
+func (p *TweetsHandler) HomeFeed(rw http.ResponseWriter, h *http.Request) {
+
+	bearer := h.Header.Get("Authorization")
+	bearerToken := strings.Split(bearer, "Bearer ")
+	tokenString := bearerToken[1]
+	fmt.Println(tokenString)
+
+	token, err := jwt.Parse([]byte(tokenString), verifier)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(rw, "Cannot parse token", 403)
+		return
+	}
+
+	claims := GetMapClaims(token.Bytes())
+	username := claims["username"]
+
+	feedTweets, err := p.repo.GetHomeFeed(username)
+
+	if err != nil {
+		http.Error(rw, "Database exception", http.StatusInternalServerError)
+		p.logger.Fatal("Database exception: ", err)
+	}
+
+	if err != nil {
+		http.Error(rw, "Unable to convert to json", http.StatusInternalServerError)
+		p.logger.Fatal("Unable to convert to json :", err)
+		return
+	}
+	renderJSON(rw, feedTweets)
+
+}
+
 func (p *TweetsHandler) PostTweet(rw http.ResponseWriter, h *http.Request) {
 
 	var request data.Tweet
@@ -119,12 +154,22 @@ func (p *TweetsHandler) PostTweet(rw http.ResponseWriter, h *http.Request) {
 
 	claims := GetMapClaims(token.Bytes())
 
-	username := claims["username"]
+	authUsername := claims["username"]
 
 	request.ID = gocql.TimeUUID()
-	request.PostedBy = username
+	request.PostedBy = authUsername
+	request.Retweet = false
+	request.OriginalPostedBy = ""
 
-	tweet, err := p.repo.SaveTweet(&request)
+	usernames, err := p.socialGraph.GetFollowers(authUsername)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	usernames = append(usernames, authUsername)
+
+	tweet, err := p.repo.SaveTweet(&request, usernames)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return

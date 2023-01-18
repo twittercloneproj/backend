@@ -15,9 +15,11 @@ type Unmarshaler interface {
 }
 
 type Tweet struct {
-	ID       gocql.UUID `json:"id"`
-	Text     string     `json:"text"`
-	PostedBy string     `json:"posted_by"`
+	ID               gocql.UUID `json:"id"`
+	Text             string     `json:"text"`
+	PostedBy         string     `json:"posted_by"`
+	Retweet          bool       `json:"retweet"`
+	OriginalPostedBy string     `json:"original_posted_by"`
 }
 
 type Likes struct {
@@ -26,6 +28,14 @@ type Likes struct {
 }
 type Tweets struct {
 	tweets []Tweet
+}
+
+type User struct {
+	Username string  `json:"username" validate:"required"`
+	Sex      string  `json:"sex"`
+	Age      float32 `json:"age"`
+	Town     string  `json:"town"`
+	Privacy  string  `json:"privacy"`
 }
 
 func (p *Tweet) FromJSON(r io.Reader) error {
