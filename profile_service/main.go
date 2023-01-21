@@ -43,7 +43,7 @@ func main() {
 	getRouter := router.Methods(http.MethodGet).Subrouter()
 	getRouter.HandleFunc("/about/{username}", profileHandler.GetUserByUsername)
 
-	profilePrivacyRouter := router.Methods(http.MethodPatch).Subrouter()
+	profilePrivacyRouter := router.Methods(http.MethodPost).Subrouter()
 	profilePrivacyRouter.HandleFunc("/change-privacy", profileHandler.ChangePrivacy)
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"http://localhost:4200"}),

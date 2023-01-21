@@ -130,6 +130,55 @@ func (m *SocialGraphHandler) CheckFollow(rw http.ResponseWriter, h *http.Request
 
 }
 
+func (m *SocialGraphHandler) CanAccessTweet(rw http.ResponseWriter, h *http.Request) {
+
+	vars := mux.Vars(h)
+	to := vars["username"]
+
+	bearer := h.Header.Get("Authorization")
+	bearerToken := strings.Split(bearer, "Bearer ")
+	tokenString := bearerToken[1]
+
+	token, err := jwt.Parse([]byte(tokenString), verifier)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(rw, "Cannot parse token", 403)
+		return
+	}
+
+	claims := GetMapClaims(token.Bytes())
+	from := claims["username"]
+
+	user, err := m.repo.GetUser(to)
+
+	if err != nil {
+		http.Error(rw, "user doesnt exists", 500)
+		return
+	}
+
+	if user.Privacy == "Public" {
+		rw.WriteHeader(http.StatusOK)
+		return
+	}
+
+	follow, dberr := m.repo.CheckIfRelationshipExists(from, to, "FOLLOW")
+
+	if dberr != nil {
+		m.logger.Print("Database exception: ", err)
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if follow {
+		rw.WriteHeader(http.StatusOK)
+		return
+	} else {
+		rw.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+}
+
 func (m *SocialGraphHandler) RemoveFollow(rw http.ResponseWriter, h *http.Request) {
 
 	vars := mux.Vars(h)
@@ -250,6 +299,33 @@ func (m *SocialGraphHandler) GetFollowingUsers(rw http.ResponseWriter, h *http.R
 		return
 	}
 	jsonResponse(users, rw)
+}
+
+func (m *SocialGraphHandler) ChangePrivacy(rw http.ResponseWriter, h *http.Request) {
+	bearer := h.Header.Get("Authorization")
+	bearerToken := strings.Split(bearer, "Bearer ")
+	tokenString := bearerToken[1]
+
+	token, err := jwt.Parse([]byte(tokenString), verifier)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(rw, "Cannot parse token", 403)
+		return
+	}
+
+	claims := GetMapClaims(token.Bytes())
+	username := claims["username"]
+
+	var updatePrivacy data.UpdatePrivacy
+	err = json.NewDecoder(h.Body).Decode(&updatePrivacy)
+
+	err = m.repo.ChangePrivacy(username, updatePrivacy.Privacy)
+
+	if err != nil {
+		http.Error(rw, err.Error(), 500)
+		return
+	}
+	rw.WriteHeader(http.StatusOK)
 }
 
 func GetMapClaims(tokenBytes []byte) map[string]string {

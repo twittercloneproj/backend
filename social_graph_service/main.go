@@ -47,6 +47,9 @@ func main() {
 	checkFollow := router.Methods(http.MethodGet).Subrouter()
 	checkFollow.HandleFunc("/follow/{username}", socialgraphHandler.CheckFollow)
 
+	canAccessTweet := router.Methods(http.MethodGet).Subrouter()
+	canAccessTweet.HandleFunc("/access-tweet/{username}", socialgraphHandler.CanAccessTweet)
+
 	followRequest := router.Methods(http.MethodPost).Subrouter()
 	followRequest.HandleFunc("/request/{username}", socialgraphHandler.AcceptRejectRequest)
 
@@ -61,6 +64,9 @@ func main() {
 
 	following := router.Methods(http.MethodGet).Subrouter()
 	following.HandleFunc("/{username}/following", socialgraphHandler.GetFollowingUsers)
+
+	changePrivacy := router.Methods(http.MethodPost).Subrouter()
+	changePrivacy.HandleFunc("/change-privacy", socialgraphHandler.ChangePrivacy)
 
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
