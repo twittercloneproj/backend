@@ -61,6 +61,23 @@ func (p *TweetsHandler) GetAllTweets(rw http.ResponseWriter, h *http.Request) {
 func (p *TweetsHandler) GetAllUserTweets(rw http.ResponseWriter, h *http.Request) {
 	vars := mux.Vars(h)
 	username := vars["username"]
+
+	bearer := h.Header.Get("Authorization")
+	bearerToken := strings.Split(bearer, "Bearer ")
+	tokenString := bearerToken[1]
+
+	access, err := p.socialGraph.CanAccessTweet(username, tokenString)
+
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if !access {
+		http.Error(rw, "cannot access profile tweets", http.StatusForbidden)
+		return
+	}
+
 	allTweets, err := p.repo.GetTweetListByUsername(username)
 
 	if err != nil {
@@ -115,6 +132,15 @@ func (p *TweetsHandler) HomeFeed(rw http.ResponseWriter, h *http.Request) {
 	username := claims["username"]
 
 	feedTweets, err := p.repo.GetHomeFeed(username)
+
+	for _, tweet := range feedTweets {
+		if tweet.Retweet {
+			follow, sgerr := p.socialGraph.CanAccessTweet(tweet.OriginalPostedBy, tokenString)
+			if sgerr != nil || !follow {
+				tweet.Text = ""
+			}
+		}
+	}
 
 	if err != nil {
 		http.Error(rw, "Database exception", http.StatusInternalServerError)
@@ -176,6 +202,69 @@ func (p *TweetsHandler) PostTweet(rw http.ResponseWriter, h *http.Request) {
 	}
 	rw.WriteHeader(http.StatusOK)
 	jsonResponse(tweet, rw)
+}
+
+func (p *TweetsHandler) Retweet(rw http.ResponseWriter, h *http.Request) {
+	bearer := h.Header.Get("Authorization")
+	bearerToken := strings.Split(bearer, "Bearer ")
+	tokenString := bearerToken[1]
+
+	token, err := jwt.Parse([]byte(tokenString), verifier)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(rw, "Cannot parse token", 403)
+		return
+	}
+
+	claims := GetMapClaims(token.Bytes())
+	authUsername := claims["username"]
+
+	vars := mux.Vars(h)
+	tweetId := vars["id"]
+
+	tweet, err := p.repo.GetTweetById(tweetId)
+
+	access, err := p.socialGraph.CanAccessTweet(tweet.PostedBy, tokenString)
+
+	if err != nil {
+		http.Error(rw, err.Error(), 500)
+		return
+	}
+
+	if !access {
+		http.Error(rw, "cannot access this tweet", http.StatusForbidden)
+		return
+	}
+
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	retweet := data.Tweet{
+		ID:               gocql.TimeUUID(),
+		Text:             tweet.Text,
+		PostedBy:         authUsername,
+		Retweet:          true,
+		OriginalPostedBy: tweet.PostedBy,
+	}
+
+	usernames, err := p.socialGraph.GetFollowers(authUsername)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	usernames = append(usernames, authUsername)
+
+	responseTweet, err := p.repo.SaveTweet(&retweet, usernames)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	rw.WriteHeader(http.StatusOK)
+	jsonResponse(responseTweet, rw)
 }
 
 func (p *TweetsHandler) LikeTweet(rw http.ResponseWriter, h *http.Request) {

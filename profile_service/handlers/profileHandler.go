@@ -95,11 +95,22 @@ func (p *UsersHandler) ChangePrivacy(rw http.ResponseWriter, h *http.Request) {
 	eerr := json.NewDecoder(h.Body).Decode(&updatePrivacy)
 
 	if eerr != nil {
-		fmt.Println(err)
+		fmt.Println(eerr)
 		http.Error(rw, "Cannot unmarshal body", 500)
 		return
 	}
-	p.repo.Update(username, updatePrivacy.Privacy)
+	repoErr := p.repo.Update(username, updatePrivacy.Privacy)
+	if repoErr != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	sgErr := p.socialGraph.ChangePrivacy(tokenString, updatePrivacy)
+	if sgErr != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	rw.WriteHeader(http.StatusOK)
 }
 

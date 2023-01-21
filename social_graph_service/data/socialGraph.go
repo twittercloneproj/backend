@@ -11,3 +11,7 @@ type User struct {
 type ApproveRequest struct {
 	Approved bool `json:"approved"`
 }
+
+type UpdatePrivacy struct {
+	Privacy string `bson:"privacy,omitempty" json:"privacy"`
+}

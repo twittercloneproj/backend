@@ -287,3 +287,28 @@ func (mr *SocialGraphRepo) GetFollowingUsers(username string) ([]User, error) {
 	return users.([]User), nil
 
 }
+
+func (mr *SocialGraphRepo) ChangePrivacy(username, isPrivate string) error {
+	ctx := context.Background()
+	session := mr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	defer session.Close(ctx)
+
+	query := fmt.Sprintf("MATCH (u:User {username:$username}) set u.privacy= $isPrivate")
+
+	_, err := session.ExecuteWrite(ctx,
+		func(transaction neo4j.ManagedTransaction) (any, error) {
+			_, err := transaction.Run(ctx, query, map[string]interface{}{"username": username, "isPrivate": isPrivate})
+			if err != nil {
+				return nil, err
+			}
+
+			return nil, nil
+		})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+
+}

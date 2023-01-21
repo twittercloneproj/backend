@@ -132,3 +132,12 @@ func (s *TweetRepo) GetHomeFeed(username string) ([]Tweet, error) {
 
 	return tweets, nil
 }
+
+func (s *TweetRepo) GetTweetById(id string) (Tweet, error) {
+	var tweet Tweet
+	err := s.db.Query(`SELECT id, posted_by, text, retweet, original_posted_by FROM tweet_by_user WHERE id = ?`).
+		Bind(id).
+		Scan(&tweet.ID, &tweet.PostedBy, &tweet.Text, &tweet.Retweet, &tweet.OriginalPostedBy)
+
+	return tweet, err
+}

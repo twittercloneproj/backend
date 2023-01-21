@@ -47,6 +47,9 @@ func main() {
 	postRouter := router.Methods(http.MethodPost).Subrouter()
 	postRouter.HandleFunc("/tweets", tweetsHandler.PostTweet)
 
+	retweet := router.Methods(http.MethodPost).Subrouter()
+	retweet.HandleFunc("/retweet/{id}", tweetsHandler.Retweet)
+
 	likeRouter := router.Methods(http.MethodPost).Subrouter()
 	likeRouter.HandleFunc("/like/{id}", tweetsHandler.LikeTweet)
 
