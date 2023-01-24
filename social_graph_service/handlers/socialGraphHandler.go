@@ -328,6 +328,67 @@ func (m *SocialGraphHandler) ChangePrivacy(rw http.ResponseWriter, h *http.Reque
 	rw.WriteHeader(http.StatusOK)
 }
 
+func (m *SocialGraphHandler) GetSuggestedUsers(rw http.ResponseWriter, h *http.Request) {
+	bearer := h.Header.Get("Authorization")
+	bearerToken := strings.Split(bearer, "Bearer ")
+	tokenString := bearerToken[1]
+
+	token, err := jwt.Parse([]byte(tokenString), verifier)
+	if err != nil {
+		fmt.Println(err)
+		http.Error(rw, "Cannot parse token", 403)
+		return
+	}
+
+	claims := GetMapClaims(token.Bytes())
+	username := claims["username"]
+
+	following, err := m.repo.GetFollowingUsers(username)
+	if len(following) == 0 {
+		users, err := m.repo.GetUsersFromSameTown(username)
+
+		if len(users) == 0 {
+			users, err = m.repo.GetRandomUsers(username)
+		}
+
+		if err != nil {
+			http.Error(rw, err.Error(), 500)
+			return
+		}
+
+		if len(users) > 0 {
+			jsonResponse(users, rw)
+			return
+		}
+	}
+
+	suggestedUsers, err := m.repo.GetSuggestionsForUser(username)
+	if err != nil {
+		http.Error(rw, err.Error(), 500)
+		return
+	}
+
+	if len(suggestedUsers) == 0 {
+		users, err := m.repo.GetUsersFromSameTown(username)
+
+		if len(users) == 0 {
+			users, err = m.repo.GetRandomUsers(username)
+		}
+
+		if err != nil {
+			http.Error(rw, err.Error(), 500)
+			return
+		}
+
+		if len(users) > 0 {
+			jsonResponse(users, rw)
+			return
+		}
+	}
+	jsonResponse(suggestedUsers, rw)
+
+}
+
 func GetMapClaims(tokenBytes []byte) map[string]string {
 	var claims map[string]string
 

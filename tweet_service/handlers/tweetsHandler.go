@@ -66,19 +66,43 @@ func (p *TweetsHandler) GetAllUserTweets(rw http.ResponseWriter, h *http.Request
 	bearerToken := strings.Split(bearer, "Bearer ")
 	tokenString := bearerToken[1]
 
-	access, err := p.socialGraph.CanAccessTweet(username, tokenString)
-
+	token, err := jwt.Parse([]byte(tokenString), verifier)
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		fmt.Println(err)
+		http.Error(rw, "Cannot parse token", 403)
 		return
 	}
 
-	if !access {
+	claims := GetMapClaims(token.Bytes())
+	authUsername := claims["username"]
+
+	access, err := p.socialGraph.CanAccessTweet(username, tokenString)
+
+	if err != nil {
+		http.Error(rw, "Error 123", http.StatusInternalServerError)
+		return
+	}
+
+	if username != authUsername && !access {
 		http.Error(rw, "cannot access profile tweets", http.StatusForbidden)
 		return
 	}
 
 	allTweets, err := p.repo.GetTweetListByUsername(username)
+
+	for i, tweet := range allTweets {
+		if tweet.Retweet {
+			canSee, sgerr := p.socialGraph.CanAccessTweet(tweet.OriginalPostedBy, tokenString)
+			if sgerr != nil {
+				allTweets[i].Text = ""
+			}
+
+			if username != authUsername && !canSee {
+				allTweets[i].Text = ""
+			}
+
+		}
+	}
 
 	if err != nil {
 		http.Error(rw, "Database exception", http.StatusInternalServerError)
@@ -133,12 +157,17 @@ func (p *TweetsHandler) HomeFeed(rw http.ResponseWriter, h *http.Request) {
 
 	feedTweets, err := p.repo.GetHomeFeed(username)
 
-	for _, tweet := range feedTweets {
+	for i, tweet := range feedTweets {
 		if tweet.Retweet {
-			follow, sgerr := p.socialGraph.CanAccessTweet(tweet.OriginalPostedBy, tokenString)
-			if sgerr != nil || !follow {
-				tweet.Text = ""
+			access, sgerr := p.socialGraph.CanAccessTweet(tweet.OriginalPostedBy, tokenString)
+			if sgerr != nil {
+				feedTweets[i].Text = ""
 			}
+
+			if tweet.OriginalPostedBy != username && !access {
+				feedTweets[i].Text = ""
+			}
+
 		}
 	}
 

@@ -312,3 +312,99 @@ func (mr *SocialGraphRepo) ChangePrivacy(username, isPrivate string) error {
 	return nil
 
 }
+
+func (mr *SocialGraphRepo) GetSuggestionsForUser(username string) ([]User, error) {
+	ctx := context.Background()
+	session := mr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	defer session.Close(ctx)
+
+	query := "MATCH (u:User {username:$username })-[:FOLLOW*2]-> (r:User) where not (u)-[:FOLLOW]->(r) and not (u)-[:REQUEST]->(r) and not r.username =~ u.username RETURN DISTINCT r.username as username limit 10"
+
+	users, err := session.ExecuteRead(ctx,
+		func(transaction neo4j.ManagedTransaction) (any, error) {
+			result, err := transaction.Run(ctx, query, map[string]interface{}{"username": username})
+
+			if err != nil {
+				return nil, err
+			}
+			var users []User
+			for result.Next(ctx) {
+				r := result.Record()
+				u, _ := r.Get("username")
+
+				users = append(users, User{Username: u.(string)})
+			}
+
+			return users, nil
+		})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return users.([]User), nil
+}
+
+func (mr *SocialGraphRepo) GetUsersFromSameTown(username string) ([]User, error) {
+	ctx := context.Background()
+	session := mr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	defer session.Close(ctx)
+
+	query := "MATCH (u:User {username:$username}), (p:User) WHERE NOT (u)-[:FOLLOW]->(p) and NOT (u)-[:REQUEST]->(p) AND p.username <> $myUsername and ToLower(p.town) =~ ToLower(u.town) RETURN p.username as username limit 10"
+
+	users, err := session.ExecuteRead(ctx,
+		func(transaction neo4j.ManagedTransaction) (any, error) {
+			result, err := transaction.Run(ctx, query, map[string]interface{}{"username": username, "myUsername": username})
+
+			if err != nil {
+				return nil, err
+			}
+			var users []User
+			for result.Next(ctx) {
+				r := result.Record()
+				u, _ := r.Get("username")
+
+				users = append(users, User{Username: u.(string)})
+			}
+
+			return users, nil
+		})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return users.([]User), nil
+}
+
+func (mr *SocialGraphRepo) GetRandomUsers(username string) ([]User, error) {
+	ctx := context.Background()
+	session := mr.driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	defer session.Close(ctx)
+
+	query := "MATCH (u:User {username:$username}), (p:User) WHERE NOT (u)-[:FOLLOW]->(p) and NOT (u)-[:REQUEST]->(p) AND p.username <> $myUsername RETURN p.username as username limit 10"
+
+	users, err := session.ExecuteRead(ctx,
+		func(transaction neo4j.ManagedTransaction) (any, error) {
+			result, err := transaction.Run(ctx, query, map[string]interface{}{"username": username, "myUsername": username})
+
+			if err != nil {
+				return nil, err
+			}
+			var users []User
+			for result.Next(ctx) {
+				r := result.Record()
+				u, _ := r.Get("username")
+
+				users = append(users, User{Username: u.(string)})
+			}
+
+			return users, nil
+		})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return users.([]User), nil
+}

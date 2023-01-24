@@ -68,6 +68,9 @@ func main() {
 	changePrivacy := router.Methods(http.MethodPost).Subrouter()
 	changePrivacy.HandleFunc("/change-privacy", socialgraphHandler.ChangePrivacy)
 
+	profileSuggestion := router.Methods(http.MethodGet).Subrouter()
+	profileSuggestion.HandleFunc("/suggestions", socialgraphHandler.GetSuggestedUsers)
+
 	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
 
 	server := http.Server{

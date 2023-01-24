@@ -46,8 +46,8 @@ func (s *TweetRepo) GetAll() ([]Tweet, error) {
 func (s *TweetRepo) GetTweetListByUsername(username string) ([]Tweet, error) {
 	var tweet Tweet
 	var tweets []Tweet
-	iter := s.db.Query(`SELECT id, text, posted_by FROM tweet_by_user WHERE posted_by = ?`).Bind(username).Iter()
-	for iter.Scan(&tweet.ID, &tweet.Text, &tweet.PostedBy) {
+	iter := s.db.Query(`SELECT id, text, posted_by, retweet, original_posted_by FROM tweet_by_user WHERE posted_by = ?`).Bind(username).Iter()
+	for iter.Scan(&tweet.ID, &tweet.Text, &tweet.PostedBy, &tweet.Retweet, &tweet.OriginalPostedBy) {
 		tweets = append(tweets, tweet)
 	}
 
