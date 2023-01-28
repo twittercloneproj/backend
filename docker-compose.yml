@@ -15,7 +15,6 @@ services:
     networks:
       - network
 
-
   tweet_service:
     container_name: tweet_service
     build: tweet_service

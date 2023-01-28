@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	gorillaHandlers "github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"log"
 	"net/http"
@@ -71,11 +70,16 @@ func main() {
 	profileSuggestion := router.Methods(http.MethodGet).Subrouter()
 	profileSuggestion.HandleFunc("/suggestions", socialgraphHandler.GetSuggestedUsers)
 
-	cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
+	//cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"*"}))
+	//cors := gorillaHandlers.CORS(gorillaHandlers.AllowedOrigins([]string{"http://localhost:4200"}),
+	//	gorillaHandlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "PATCH"}),
+	//	gorillaHandlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type"}),
+	//	gorillaHandlers.AllowCredentials())
 
 	server := http.Server{
-		Addr:         ":" + port,
-		Handler:      cors(router),
+		Addr: ":" + port,
+		//Handler:      cors(router),
+		Handler:      router,
 		IdleTimeout:  120 * time.Second,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
