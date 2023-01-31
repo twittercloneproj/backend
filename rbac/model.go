@@ -18,11 +18,9 @@ type RolePermission struct {
 const (
 	NonregisteredUser = "NonregisteredUser"
 	User              = "User"
-	BusinessUser      = "BusinessUser"
 )
 
 var (
-	nonregistereduser = UserRole{Id: "", Name: NonregisteredUser}
-	user              = UserRole{Id: "", Name: User}
-	businessuser      = UserRole{Id: "", Name: BusinessUser}
+	nonregistereduser = UserRole{Id: "1", Name: NonregisteredUser}
+	user              = UserRole{Id: "2", Name: User}
 )
