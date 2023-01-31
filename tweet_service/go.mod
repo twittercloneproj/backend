@@ -7,6 +7,7 @@ require (
 	github.com/gocql/gocql v1.2.1
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/mux v1.8.0
+	github.com/sony/gobreaker v0.5.0
 )
 
 require (

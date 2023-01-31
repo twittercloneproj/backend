@@ -79,10 +79,10 @@ func main() {
 	server := http.Server{
 		Addr: ":" + port,
 		//Handler:      cors(router),
-		Handler:      router,
-		IdleTimeout:  120 * time.Second,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 5 * time.Second,
+		Handler: router,
+		//IdleTimeout:  120 * time.Second,
+		//ReadTimeout:  5 * time.Second,
+		//WriteTimeout: 5 * time.Second,
 	}
 
 	logger.Println("Server listening on port", port)
