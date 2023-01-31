@@ -31,9 +31,10 @@ func main() {
 	}
 
 	socialGraphClient := social_graph.NewClient("social_graph_service", "8002")
+	circuitBreaker := social_graph.NewCircuitBreaker(&socialGraphClient)
 
 	//Initialize the handler and inject said logger
-	tweetsHandler := handlers.NewTweetsHandler(logger, store, socialGraphClient)
+	tweetsHandler := handlers.NewTweetsHandler(logger, store, socialGraphClient, circuitBreaker)
 
 	//Initialize the router and add a middleware for all the requests
 	router := mux.NewRouter()
@@ -64,11 +65,8 @@ func main() {
 
 	//Initialize the server
 	server := http.Server{
-		Addr:         ":" + port,        // Addr optionally specifies the TCP address for the server to listen on, in the form "host:port". If empty, ":http" (port 80) is used.
-		Handler:      router,            // handler to invoke, http.DefaultServeMux if nil
-		IdleTimeout:  120 * time.Second, // IdleTimeout is the maximum amount of time to wait for the next request when keep-alives are enabled.
-		ReadTimeout:  1 * time.Second,   // ReadTimeout is the maximum duration for reading the entire request, including the body. A zero or negative value means there will be no timeout.
-		WriteTimeout: 1 * time.Second,   // WriteTimeout is the maximum duration before timing out writes of the response.
+		Addr:    ":" + port, // Addr optionally specifies the TCP address for the server to listen on, in the form "host:port". If empty, ":http" (port 80) is used.
+		Handler: router,     // handler to invoke, http.DefaultServeMux if nil
 	}
 
 	//certFile := "twitter.crt"

@@ -22,14 +22,14 @@ var jwtKey = []byte(os.Getenv("SECRET_KEY"))
 var verifier, _ = jwt.NewVerifierHS(jwt.HS256, jwtKey)
 
 type TweetsHandler struct {
-	logger *log.Logger
-	// NoSQL: injecting product repository
-	repo        *data.TweetRepo
-	socialGraph social_graph.Client
+	logger                    *log.Logger
+	repo                      *data.TweetRepo
+	socialGraph               social_graph.Client
+	socialGraphCircuitBreaker *social_graph.SocialGraphCircuitBreaker
 }
 
-func NewTweetsHandler(l *log.Logger, r *data.TweetRepo, socialGraph social_graph.Client) *TweetsHandler {
-	return &TweetsHandler{l, r, socialGraph}
+func NewTweetsHandler(l *log.Logger, r *data.TweetRepo, socialGraph social_graph.Client, circuitBreaker *social_graph.SocialGraphCircuitBreaker) *TweetsHandler {
+	return &TweetsHandler{l, r, socialGraph, circuitBreaker}
 }
 
 func renderJSON(w http.ResponseWriter, v interface{}) {
@@ -76,10 +76,10 @@ func (p *TweetsHandler) GetAllUserTweets(rw http.ResponseWriter, h *http.Request
 	claims := GetMapClaims(token.Bytes())
 	authUsername := claims["username"]
 
-	access, err := p.socialGraph.CanAccessTweet(username, tokenString)
+	access, err := p.socialGraphCircuitBreaker.CanAccessTweet(username, tokenString)
 
 	if err != nil {
-		http.Error(rw, "Error 123", http.StatusInternalServerError)
+		http.Error(rw, "Error checking visibility", http.StatusInternalServerError)
 		return
 	}
 
@@ -89,19 +89,19 @@ func (p *TweetsHandler) GetAllUserTweets(rw http.ResponseWriter, h *http.Request
 	}
 
 	allTweets, err := p.repo.GetTweetListByUsername(username)
-
-	for i, tweet := range allTweets {
+	var allTweetsDTO []data.Tweet
+	for _, tweet := range allTweets {
 		if tweet.Retweet {
-			canSee, sgerr := p.socialGraph.CanAccessTweet(tweet.OriginalPostedBy, tokenString)
+			canSee, sgerr := p.socialGraphCircuitBreaker.CanAccessTweet(tweet.OriginalPostedBy, tokenString)
 			if sgerr != nil {
-				allTweets[i].Text = ""
+				continue
 			}
 
 			if username != authUsername && !canSee {
-				allTweets[i].Text = ""
+				tweet.Text = ""
 			}
-
 		}
+		allTweetsDTO = append(allTweetsDTO, tweet)
 	}
 
 	if err != nil {
@@ -114,7 +114,7 @@ func (p *TweetsHandler) GetAllUserTweets(rw http.ResponseWriter, h *http.Request
 		p.logger.Fatal("Unable to convert to json :", err)
 		return
 	}
-	renderJSON(rw, allTweets)
+	renderJSON(rw, allTweetsDTO)
 }
 
 func (p *TweetsHandler) GetUsersWhoLikedTweet(rw http.ResponseWriter, h *http.Request) {
@@ -156,19 +156,19 @@ func (p *TweetsHandler) HomeFeed(rw http.ResponseWriter, h *http.Request) {
 	username := claims["username"]
 
 	feedTweets, err := p.repo.GetHomeFeed(username)
-
-	for i, tweet := range feedTweets {
+	var feedTweetsDTO []data.Tweet
+	for _, tweet := range feedTweets {
 		if tweet.Retweet {
-			access, sgerr := p.socialGraph.CanAccessTweet(tweet.OriginalPostedBy, tokenString)
+			access, sgerr := p.socialGraphCircuitBreaker.CanAccessTweet(tweet.OriginalPostedBy, tokenString)
 			if sgerr != nil {
-				feedTweets[i].Text = ""
+				continue
 			}
 
 			if tweet.OriginalPostedBy != username && !access {
-				feedTweets[i].Text = ""
+				tweet.Text = ""
 			}
-
 		}
+		feedTweetsDTO = append(feedTweetsDTO, tweet)
 	}
 
 	if err != nil {
@@ -181,7 +181,7 @@ func (p *TweetsHandler) HomeFeed(rw http.ResponseWriter, h *http.Request) {
 		p.logger.Fatal("Unable to convert to json :", err)
 		return
 	}
-	renderJSON(rw, feedTweets)
+	renderJSON(rw, feedTweetsDTO)
 
 }
 
