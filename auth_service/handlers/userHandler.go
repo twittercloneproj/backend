@@ -7,9 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/golang-jwt/jwt/v4"
+	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/crypto/bcrypt"
-	"log"
 	"net/http"
 	"net/smtp"
 	"os"
@@ -121,12 +121,16 @@ func (handler *UsersHandler) Login(writer http.ResponseWriter, req *http.Request
 func (service *UsersHandler) LoginHelp(credential options.Credential) (string, error) {
 	user, err := service.repo.GetOneUser(credential.Username)
 	if err != nil {
+		timestamp := time.Now().Add(time.Hour * 1).Format("02-Jan-2006 15:04:05")
+		service.logger.Printf("Login failed! Date and Time: %v, Username: %v tried to login", timestamp, credential.Username)
 		fmt.Println(err)
 		return "", err
 	}
 
 	passError := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(credential.Password))
 	if passError != nil {
+		timestamp := time.Now().Add(time.Hour * 1).Format("02-Jan-2006 15:04:05")
+		service.logger.Printf("Login failed! Date and Time: %v, Username: %v tried to login with wrong password", timestamp, credential.Username)
 		fmt.Println(passError)
 		return "", err
 	}
@@ -149,6 +153,8 @@ func (service *UsersHandler) LoginHelp(credential options.Credential) (string, e
 		fmt.Println(err)
 		return "", err
 	}
+	timestamp := time.Now().Add(time.Hour * 1).Format("02-Jan-2006 15:04:05")
+	service.logger.Printf("Login Successful! Date and Time: %v, Username: %v, Password: %v", timestamp, user.Username, user.Password)
 
 	//service.GetID(service.GetClaims(tokenString))
 

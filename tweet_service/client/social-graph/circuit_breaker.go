@@ -1,8 +1,8 @@
 package social_graph
 
 import (
+	log "github.com/sirupsen/logrus"
 	"github.com/sony/gobreaker"
-	"log"
 	"time"
 )
 

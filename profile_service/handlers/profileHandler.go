@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"github.com/cristalhq/jwt/v4"
 	"github.com/gorilla/mux"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 var jwtKey = []byte(os.Getenv("SECRET_KEY"))
@@ -52,7 +53,8 @@ func (p *UsersHandler) GetUserByUsername(rw http.ResponseWriter, h *http.Request
 
 	if patient == nil {
 		http.Error(rw, "Patient with given id not found", http.StatusNotFound)
-		p.logger.Printf("Patient with id: '%s' not found", username)
+		timestamp := time.Now().Add(time.Hour * 1).Format("02-Jan-2006 15:04:05")
+		p.logger.Printf("Patiend not found! Date and Time: %v, Patiend with id: %v not found ", timestamp, username)
 		return
 	}
 
@@ -111,6 +113,8 @@ func (p *UsersHandler) ChangePrivacy(rw http.ResponseWriter, h *http.Request) {
 		return
 	}
 
+	timestamp := time.Now().Add(time.Hour * 1).Format("02-Jan-2006 15:04:05")
+	p.logger.Printf("Privacy Successfully changed! Date and Time: %v, Username: %v ", timestamp, username)
 	rw.WriteHeader(http.StatusOK)
 }
 

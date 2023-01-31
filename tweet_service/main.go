@@ -3,7 +3,10 @@ package main
 import (
 	"context"
 	"github.com/gorilla/mux"
-	"log"
+	rotatelogs "github.com/lestrrat/go-file-rotatelogs"
+	"github.com/sirupsen/logrus"
+	easy "github.com/t-tomalak/logrus-easy-formatter"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -22,19 +25,39 @@ func main() {
 	}
 
 	//Initialize the logger we are going to use, with prefix and datetime for every log
-	logger := log.New(os.Stdout, "[tweet-api] ", log.LstdFlags)
+	//logger := log.New(os.Stdout, "[tweet-api] ", log.LstdFlags)
+
+	// Create a new log file rotator
+	logWriter, err := rotatelogs.New(
+		"twitterlogs-%Y%m%d.txt", // file name pattern
+		rotatelogs.WithLinkName("twitterlogs.txt"),
+		rotatelogs.WithMaxAge(24*time.Hour),
+		rotatelogs.WithRotationTime(24*time.Hour),
+	)
+	if err != nil {
+		logrus.Fatalf("failed to create rotate logs: %s", err)
+	}
+
+	log := &logrus.Logger{
+		// Log into f file handler and on os.Stdout
+		Out:   io.MultiWriter(logWriter, os.Stdout),
+		Level: logrus.InfoLevel,
+		Formatter: &easy.Formatter{
+			LogFormat: "[%lvl%]: - %msg%\n",
+		},
+	}
 
 	// NoSQL: Initialize Product Repository store
-	store, err := data.New(logger)
+	store, err := data.New(log)
 	if err != nil {
-		logger.Fatal(err)
+		log.Fatal(err)
 	}
 
 	socialGraphClient := social_graph.NewClient("social_graph_service", "8002")
 	circuitBreaker := social_graph.NewCircuitBreaker(&socialGraphClient)
 
 	//Initialize the handler and inject said logger
-	tweetsHandler := handlers.NewTweetsHandler(logger, store, socialGraphClient, circuitBreaker)
+	tweetsHandler := handlers.NewTweetsHandler(log, store, socialGraphClient, circuitBreaker)
 
 	//Initialize the router and add a middleware for all the requests
 	router := mux.NewRouter()
@@ -72,13 +95,13 @@ func main() {
 	//certFile := "twitter.crt"
 	//keyFile := "twitter.key"
 
-	logger.Println("Server listening on port", port)
+	log.Println("Server listening on port", port)
 	//Distribute all the connections to goroutines
 	go func() {
 		//err := server.ListenAndServeTLS(certFile, keyFile)
 		err := server.ListenAndServe()
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(err)
 		}
 	}()
 
@@ -90,13 +113,13 @@ func main() {
 	//But if we do the code will stop receiving any new connections and wait for maximum of 30 seconds to finish all current requests.
 	//After that the code will terminate.
 	sig := <-sigCh
-	logger.Println("Received terminate, graceful shutdown", sig)
+	log.Println("Received terminate, graceful shutdown", sig)
 	timeoutContext, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	//Try to shutdown gracefully
 	if server.Shutdown(timeoutContext) != nil {
-		logger.Fatal("Cannot gracefully shutdown...")
+		log.Fatal("Cannot gracefully shutdown...")
 	}
-	logger.Println("Server stopped")
+	log.Println("Server stopped")
 }

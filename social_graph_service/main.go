@@ -3,7 +3,10 @@ package main
 import (
 	"context"
 	"github.com/gorilla/mux"
-	"log"
+	rotatelogs "github.com/lestrrat/go-file-rotatelogs"
+	"github.com/sirupsen/logrus"
+	easy "github.com/t-tomalak/logrus-easy-formatter"
+	"io"
 	"net/http"
 	"os"
 	"os/signal"
@@ -23,17 +26,34 @@ func main() {
 	timeoutContext, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	logger := log.New(os.Stdout, "[graph-api] ", log.LstdFlags)
-	storeLogger := log.New(os.Stdout, "[social-graph] ", log.LstdFlags)
-
-	store, err := data.New(storeLogger)
+	// Create a new log file rotator
+	logWriter, err := rotatelogs.New(
+		"twitterlogs-%Y%m%d.txt", // file name pattern
+		rotatelogs.WithLinkName("twitterlogs.txt"),
+		rotatelogs.WithMaxAge(24*time.Hour),
+		rotatelogs.WithRotationTime(24*time.Hour),
+	)
 	if err != nil {
-		logger.Fatal(err)
+		logrus.Fatalf("failed to create rotate logs: %s", err)
+	}
+
+	log := &logrus.Logger{
+		// Log into f file handler and on os.Stdout
+		Out:   io.MultiWriter(logWriter, os.Stdout),
+		Level: logrus.InfoLevel,
+		Formatter: &easy.Formatter{
+			LogFormat: "[%lvl%]: - %msg%\n",
+		},
+	}
+
+	store, err := data.New(log)
+	if err != nil {
+		log.Fatal(err)
 	}
 	defer store.CloseDriverConnection(timeoutContext)
 	store.CheckConnection()
 	//
-	socialgraphHandler := handlers.NewMoviesHandler(logger, store)
+	socialgraphHandler := handlers.NewMoviesHandler(log, store)
 	//
 	router := mux.NewRouter()
 
@@ -85,12 +105,12 @@ func main() {
 		//WriteTimeout: 5 * time.Second,
 	}
 
-	logger.Println("Server listening on port", port)
+	log.Println("Server listening on port", port)
 	//Distribute all the connections to goroutines
 	go func() {
 		err := server.ListenAndServe()
 		if err != nil {
-			logger.Fatal(err)
+			log.Fatal(err)
 		}
 	}()
 
@@ -99,11 +119,11 @@ func main() {
 	signal.Notify(sigCh, os.Kill)
 
 	sig := <-sigCh
-	logger.Println("Received terminate, graceful shutdown", sig)
+	log.Println("Received terminate, graceful shutdown", sig)
 
 	//Try to shutdown gracefully
 	if server.Shutdown(timeoutContext) != nil {
-		logger.Fatal("Cannot gracefully shutdown...")
+		log.Fatal("Cannot gracefully shutdown...")
 	}
-	logger.Println("Server stopped")
+	log.Println("Server stopped")
 }

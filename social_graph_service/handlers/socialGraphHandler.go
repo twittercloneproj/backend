@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"github.com/cristalhq/jwt/v4"
 	"github.com/gorilla/mux"
-	"log"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"social_graph_service/data"
 	"strings"
+	"time"
 )
 
 type KeyProduct struct{}
@@ -157,6 +158,8 @@ func (m *SocialGraphHandler) CanAccessTweet(rw http.ResponseWriter, h *http.Requ
 	}
 
 	if user.Privacy == "Public" {
+		timestamp := time.Now().Add(time.Hour * 1).Format("02-Jan-2006 15:04:05")
+		m.logger.Printf("Followed successfully! Date and Time: %v, From: %v, To: %v", timestamp, from, to)
 		rw.WriteHeader(http.StatusOK)
 		return
 	}
@@ -205,6 +208,8 @@ func (m *SocialGraphHandler) RemoveFollow(rw http.ResponseWriter, h *http.Reques
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	timestamp := time.Now().Add(time.Hour * 1).Format("02-Jan-2006 15:04:05")
+	m.logger.Printf("Follow removed successfully! Date and Time: %v, From: %v, To: %v", timestamp, from, to)
 	rw.WriteHeader(http.StatusOK)
 }
 

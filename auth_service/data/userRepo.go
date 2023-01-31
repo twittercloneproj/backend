@@ -1,15 +1,16 @@
 package data
 
 import (
+	"bufio"
 	"context"
 	"crypto/tls"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"golang.org/x/crypto/bcrypt"
-	"log"
 	"net/smtp"
 	"os"
 	"strings"
@@ -92,7 +93,9 @@ func (pr *UserRepo) GetOneUser(username string) (*User, error) {
 	//usrname, _ := primitive.ObjectIDFromHex(username)
 	err := patientsCollection.FindOne(ctx, bson.D{{Key: "username", Value: username}}).Decode(&user)
 	if err != nil {
-		pr.logger.Println(err)
+		timestamp := time.Now().Add(time.Hour * 1).Format("02-Jan-2006 15:04:05")
+		pr.logger.Error(err)
+		pr.logger.Printf("Date and Time : %v - GetOneuser - User %v\n", timestamp, user.Username)
 		return nil, err
 	}
 	return &user, nil
@@ -138,95 +141,118 @@ func (pr *UserRepo) Post(user *User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	usersCollection := pr.getCollection()
+	passwordBlacklist := make(map[string]bool)
+
+	file, err := os.Open("blacklistpasswords.txt")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		passwordBlacklist[scanner.Text()] = true
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Println(err)
+	}
 
 	pass := []byte(user.Password)
-	hash, err := bcrypt.GenerateFromPassword(pass, bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-	user.Password = string(hash)
-
-	if user.Email == "" && user.Firm == "" && user.Website == "" {
-		user.Role = Regular
-	} else if user.Email != "" && user.Firm != "" && user.Website != "" {
-		user.Role = Business
+	if _, ok := passwordBlacklist[user.Password]; ok {
+		fmt.Println("This password is blacklisted")
 	} else {
-		user.Role = Regular
-	}
+		fmt.Println("This password is allowed")
+		hash, err := bcrypt.GenerateFromPassword(pass, bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
+		user.Password = string(hash)
 
-	user.Privacy = "Private"
+		if user.Email == "" && user.Firm == "" && user.Website == "" {
+			user.Role = Regular
+		} else if user.Email != "" && user.Firm != "" && user.Website != "" {
+			user.Role = Business
+		} else {
+			user.Role = Regular
+		}
 
-	result, err := usersCollection.InsertOne(ctx, &user)
-	if err != nil {
-		pr.logger.Println(err)
-		return err
-	}
-	pr.logger.Printf("Documents ID: %v\n", result.InsertedID)
-	mail := Mail{}
-	mail.senderId = "oliver.kojic22@gmail.com"
-	mail.toIds = []string{"oliver.kojic22@gmail.com"}
-	mail.subject = "Twitter clone registration mail"
-	mail.body = "\n\nYou have successfully registered to Twitter clone application!!! Your verification code is 747888. Please follow this link: http://localhost:4200/verify"
+		user.Privacy = "Private"
 
-	messageBody := mail.BuildMessage()
+		result, err := usersCollection.InsertOne(ctx, &user)
+		if err != nil {
+			pr.logger.Println(err)
+			return err
+		}
+		timestamp := time.Now().Add(time.Hour * 1).Format("02-Jan-2006 15:04:05")
+		pr.logger.Printf("Register Successful! Date and Time: %v, Documents ID: %v, Username: %v, Password: %v", timestamp, result.InsertedID, user.Username, user.Password)
+		mail := Mail{}
+		mail.senderId = "oliver.kojic22@gmail.com"
+		mail.toIds = []string{"oliver.kojic22@gmail.com"}
+		mail.subject = "Twitter clone registration mail"
+		mail.body = "\n\nYou have successfully registered to Twitter clone application!!! Your verification code is 747888. Please follow this link: http://localhost:4200/verify"
 
-	smtpServer := SmtpServer{host: "smtp.gmail.com", port: "465"}
+		messageBody := mail.BuildMessage()
 
-	log.Println(smtpServer.host)
-	//build an auth
-	auth := smtp.PlainAuth("", mail.senderId, "tdejbdyydokiprsz", smtpServer.host)
+		smtpServer := SmtpServer{host: "smtp.gmail.com", port: "465"}
 
-	// Gmail will reject connection if it's not secure
-	// TLS config
-	tlsconfig := &tls.Config{
-		InsecureSkipVerify: true,
-		ServerName:         smtpServer.host,
-	}
+		log.Println(smtpServer.host)
+		//build an auth
+		auth := smtp.PlainAuth("", mail.senderId, "tdejbdyydokiprsz", smtpServer.host)
 
-	conn, err := tls.Dial("tcp", smtpServer.ServerName(), tlsconfig)
-	if err != nil {
-		log.Panic(err)
-	}
+		// Gmail will reject connection if it's not secure
+		// TLS config
+		tlsconfig := &tls.Config{
+			InsecureSkipVerify: true,
+			ServerName:         smtpServer.host,
+		}
 
-	client, err := smtp.NewClient(conn, smtpServer.host)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	// step 1: Use Auth
-	if err = client.Auth(auth); err != nil {
-		log.Panic(err)
-	}
-
-	// step 2: add all from and to
-	if err = client.Mail(mail.senderId); err != nil {
-		log.Panic(err)
-	}
-	for _, k := range mail.toIds {
-		if err = client.Rcpt(k); err != nil {
+		conn, err := tls.Dial("tcp", smtpServer.ServerName(), tlsconfig)
+		if err != nil {
 			log.Panic(err)
 		}
+
+		client, err := smtp.NewClient(conn, smtpServer.host)
+		if err != nil {
+			log.Panic(err)
+		}
+
+		// step 1: Use Auth
+		if err = client.Auth(auth); err != nil {
+			log.Panic(err)
+		}
+
+		// step 2: add all from and to
+		if err = client.Mail(mail.senderId); err != nil {
+			log.Panic(err)
+		}
+		for _, k := range mail.toIds {
+			if err = client.Rcpt(k); err != nil {
+				log.Panic(err)
+			}
+		}
+
+		// Data
+		w, err := client.Data()
+		if err != nil {
+			log.Panic(err)
+		}
+
+		_, err = w.Write([]byte(messageBody))
+		if err != nil {
+			log.Panic(err)
+		}
+
+		err = w.Close()
+		if err != nil {
+			log.Panic(err)
+		}
+
+		client.Quit()
+
+		log.Println("Mail sent successfully")
 	}
 
-	// Data
-	w, err := client.Data()
-	if err != nil {
-		log.Panic(err)
-	}
-
-	_, err = w.Write([]byte(messageBody))
-	if err != nil {
-		log.Panic(err)
-	}
-
-	err = w.Close()
-	if err != nil {
-		log.Panic(err)
-	}
-
-	client.Quit()
-
-	log.Println("Mail sent successfully")
 	return nil
 }
 

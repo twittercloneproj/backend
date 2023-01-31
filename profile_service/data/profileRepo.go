@@ -3,11 +3,11 @@ package data
 import (
 	"context"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"log"
 	"os"
 	"time"
 )
@@ -66,8 +66,9 @@ func (pr *UserRepo) Update(username string, privacy string) error {
 		"privacy": privacy,
 	}}
 	result, err := patientsCollection.UpdateOne(ctx, filter, update)
-	pr.logger.Printf("Documents matched: %v\n", result.MatchedCount)
-	pr.logger.Printf("Documents updated: %v\n", result.ModifiedCount)
+	timestamp := time.Now().Add(time.Hour * 1).Format("02-Jan-2006 15:04:05")
+	pr.logger.Printf("Date and Time: %v, Documents matched: %v\n", timestamp, result.MatchedCount)
+	pr.logger.Printf("Date and Time: %v, Documents updated: %v\n", timestamp, result.ModifiedCount)
 
 	if err != nil {
 		pr.logger.Println(err)
