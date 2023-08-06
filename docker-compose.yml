@@ -1,0 +1,165 @@
+version: '2.1'
+services:
+  cassandra:
+    image: cassandra:4.0
+    ports:
+      - "7000:7000"
+      - "9042:9042"
+    volumes:
+      - ~/apps/cassandra:/var/lib/cassandra
+    healthcheck:
+      test: [ "CMD-SHELL", "[ $$(nodetool statusgossip) = running ]" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - network
+
+  tweet_service:
+    container_name: tweet_service
+    build: tweet_service
+    restart: always
+    ports:
+      - "8001:8001"
+    depends_on:
+      cassandra:
+        condition: service_healthy
+    environment:
+      - DBPORT=9042
+      - DB=cassandra
+      - SECRET_KEY=my_secret_key
+    networks:
+      - network
+
+  auth_service:
+    build: auth_service
+    container_name: auth_service
+    restart: always
+    ports:
+      - "8003:8003"
+    environment:
+      AUTH_DB_HOST: ${AUTH_DB_HOST}
+      AUTH_DB_PORT: ${AUTH_DB_PORT}
+      AUTH_DB_NAME: ${AUTH_DB_NAME}
+      AUTH_SERVICE_PORT: ${AUTH_SERVICE_PORT}
+      AUTH_SERVICE_HOST: ${AUTH_SERVICE_HOST}
+      JWT_PRIVATE: ${JWT_PRIVATE}
+      JWT_PUBLIC: ${JWT_PUBLIC}
+      SECRET_KEY: ${SECRET_KEY}
+    depends_on:
+      - auth_db
+    networks:
+      - network
+
+  profile_service:
+    build: profile_service
+    container_name: profile_service
+    restart: always
+    ports:
+      - "8004:8004"
+    environment:
+      AUTH_DB_HOST: ${PROFILE_DB_HOST}
+      AUTH_DB_PORT: ${PROFILE_DB_PORT}
+      AUTH_DB_NAME: ${PROFILE_DB_NAME}
+      AUTH_SERVICE_PORT: ${PROFILE_SERVICE_PORT}
+      AUTH_SERVICE_HOST: ${PROFILE_SERVICE_HOST}
+      SECRET_KEY: ${SECRET_KEY}
+#      JWT_PRIVATE: ${JWT_PRIVATE}
+#      JWT_PUBLIC: ${JWT_PUBLIC}
+    depends_on:
+      - auth_db
+    networks:
+      - network
+
+  auth_db:
+    image: mongo
+    container_name: auth_db
+    restart: always
+    networks:
+      - network
+    volumes:
+      - mongo_store:/data/db
+      #      - ${AUTH_DB_VOLUME}:/data/db
+
+
+  social_graph_service:
+    build: social_graph_service
+    restart: always
+    container_name: social-graph-container
+#    hostname: "follows-server"
+    #Mapping ports
+    ports:
+      # <port_on_local>:<port_in_machine>
+      - "8002:8002"
+    #Will be accessible through os.Getenv("PORT")
+    environment:
+      - PORT=8002
+      # NoSQL: environment variable holding connection URI for Neo4J database
+      # Local DB instance
+      - NEO4J_DB=bolt://neo4j:7687
+      - NEO4J_USERNAME=neo4j
+      - NEO4J_PASS=password123
+      - SECRET_KEY=my_secret_key
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    networks:
+      - network
+
+  # NoSQL: Neo4J DB
+  neo4j:
+    image: neo4j
+    restart: always
+    ports:
+      # bolt
+      - 7687:7687
+      # http
+      - 7474:7474
+      # https
+      - 7473:7473
+    healthcheck:
+      # test: [ "CMD-SHELL", "echo RETURN 1 | cypher-shell -a <NEO4J_dbms_connector_bolt_listen__address> -u <user defined username> -p <user defined password> || exit 1" ]
+      test:
+        [
+          "CMD-SHELL",
+          "echo RETURN 1 | cypher-shell -a bolt://neo4j:7687 -u neo4j -p pass || exit 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    environment:
+      - NEO4J_AUTH=none
+    volumes:
+      - neo4j_data:/data
+    networks:
+      - network
+
+  api_gateway:
+    build:
+      context: ./api_gateway/
+      dockerfile: Dockerfile
+    container_name: api_gateway
+    depends_on:
+      - tweet_service
+      - auth_service
+      - social_graph_service
+    restart: on-failure
+    ports:
+      - "8000:8000"
+    networks:
+      - network
+
+
+volumes:
+  cassandra:
+  mongo_store:
+  neo4j_data:
+
+
+networks:
+  network:
+    driver: bridge
+
+
+
+
