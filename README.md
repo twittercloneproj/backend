@@ -2,7 +2,6 @@
 
 # cqlsh, use tweet_db
 
-
 # The project (Golang microservices + Angular) represents a social network for posting and viewing short posts, similar to Twitter. The application is developed according to the principles of microservices architecture, and data is stored in various types of NoSQL databases. Types of users: </br> - unauthenticated user: can register on the system, obtaining a regular account. If they have an account, they can log in to the system. </br> - regular authenticated user: a user who has logged in with a regular profile. They can post, retweet, and like posts, follow other users, view their profiles, adjust profile privacy settings and receive recommendations for new follows.
 # Parts of the system:
 # Client application: provides a graphical interface through which users access the system's functionalities.
